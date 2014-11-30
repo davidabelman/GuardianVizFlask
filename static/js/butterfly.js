@@ -7,12 +7,12 @@ function make_nodes_hoverable(hoverout) {
   //  --we display headline and story info in the panel
         d3.selectAll('.node').on('mouseover', 
           function(d) {
-            update_panel(d)  // Which will extract d.headline, d.strapline etc. and display in the side panel
+            update_panel(d)  // Which will extract d.headline, d.standfirst etc. and display in the side panel
           })
         if (hoverout) {
           d3.selectAll('.node').on('mouseout', 
           function(d) {
-            clearpanel(d)  // Which will extract d.headline, d.strapline etc. and display in the side panel
+            clearpanel(d)  // Which will extract d.headline, d.standfirst etc. and display in the side panel
           })
         }
 }
@@ -20,14 +20,17 @@ function make_nodes_hoverable(hoverout) {
 function update_panel(d) {
   // Add article data to panel (e.g. on hover over)
   $('#headline').text(d.headline)
-  $('#strapline').text(d.strapline)
+  $('#standfirst').html(d.standfirst)
   $('#date').text(d.date)
+  $('#image').html('<img src="'+d.image+'">')
+  $('#readmore').html(d.readmore)
 }
 function clearpanel(d) {
   // Remove article data from panel (e.g. on hover out)
   $('#headline').text('')
-  $('#strapline').text('')
+  $('#standfirst').text('')
   $('#date').text('')
+  $('#image').html('')
 }
 
 function make_nodes_clickable() {
@@ -53,55 +56,76 @@ function make_nodes_clickable() {
       // Set force charge and friction
       // Initialsed previously with weak charge to avoid bouncing off screen
         setTimeout( function() {
-          force.charge(-3000).friction(0.7).linkDistance(170)
+          force.charge(-3000).friction(0.7).linkDistance(200)
         },1000)
       
 
       // Detect what was clicked
       var id_clicked = $(this).attr('id')
+      var python_id_clicked = $(this).attr('python_id')
       console.log("Clicked id:", id_clicked)      
+      console.log("Clicked python_id:", python_id_clicked)      
 
       // Pick the node we just clicked
       var clicked_node = nodes.filter( function(n) {return n.id==id_clicked} )[0]
       console.log("Data of clicked:", clicked_node)
-      
-      // Create new nodes based on AJAX call (TODO)
-      COUNT += 1
-      var new_node = {id: String(COUNT),
-                      headline:'Vietnam awarded top country'+String(COUNT),
-                      strapline:'The strapline data goes here too',
-                      date:'3 Jun 2013',
-                      date_difference:'+4 days'
-                    }    
-      COUNT += 1
-      var new_node_2 = {id: String(COUNT), 
-                      headline:'China enters waters'+String(COUNT),
-                      strapline:'The strapline data goes here too',
-                      date:'6 Jun 2013',
-                      date_difference:'+2 days'
-                    }  
-      COUNT += 1
-      var new_node_3 = {id: String(COUNT),
-                      headline:'Yen down against Dong'+String(COUNT),
-                      strapline:'The strapline data goes here too',
-                      date:'1 Jun 2013',
-                      date_difference:'+17 days'
-                    }    
-      
-      // Add the new node(s) and connect to an old node
-      nodes.push(new_node, new_node_2, new_node_3);
-      links.push(
-        {source: clicked_node, target: new_node},
-        {source: clicked_node, target: new_node_2},
-        {source: clicked_node, target: new_node_3});
 
       // Add 'clicked' class to node just clicked
+      // NB: can't get .addClass to work, so roundabout method used...
       var current_classes = $('#'+id_clicked).attr('class')
       var new_classes = current_classes + ' clicked'
       $('#'+id_clicked).attr('class', new_classes)
+      
+      console.log("Calling AJAX...")
+      // Create new nodes based on AJAX call (TODO)
+      $.ajax( {
+        url: '/_butterfly_get_related_articles',
+        data: JSON.stringify ({
+          'python_id':python_id_clicked,
+          'future_or_past':'future_articles'
+        }, null, '\t'),
+        contentType: 'application/json;charset=UTF-8',
+        type: "POST",
+        success: function(response) {
+          // Returns status=1 and userID
+          response = JSON.parse(response);
+          status = response['status']
+          data = response['data']
+          if (status=='1') {
+            // Successfully retrieved new data
+            console.log("Got data from AJAX:", data)
+
+            // Push the new nodes and links to nodes/links array
+            new_nodes = data
+            for (i=0; i<new_nodes.length; i++) {
+              COUNT+=1;
+              new_node = new_nodes[i]
+              new_node['id']=new_node['id']+String(COUNT)
+              nodes.push(new_node);
+              links.push ({source: clicked_node, target:new_nodes[i]})
+            }            
+
+            // Recalculate
+            start()
+
+          }
+          else if (status=='-1') {
+            // No more articles found...
+            console.log("Status -1, no more articles")
+            alert("No more articles!")
+          }
+          else {
+            // New data not returned from Python, see Flask code
+            console.log("Got data back, but status was not 1")
+          }
+        },
+        fail: function() {
+          console.log("Serverside error")
+        } // end success callback
+      }); // end ajax
 
       // Recalculate
-      start();
+      // start();
   })
 }
 
@@ -159,7 +183,7 @@ function start() {
     .append('text')
     .attr('class', 'node_label fresh_node_label') 
     .attr('id', 'starter_label')
-    .text(function(d) { return d.headline });
+    .text(function(d) { return d.headline_short });
   }
   else {
   // Other iterations, don't add ID of #starter_label
@@ -169,7 +193,7 @@ function start() {
     .attr('class','node_label_group')     
     .append('text')
     .attr('class', 'node_label fresh_node_label') 
-    .text(function(d) { return d.headline });
+    .text(function(d) { return d.headline_short });
   }
 
   // Node labels (dates)
@@ -188,7 +212,8 @@ function start() {
     .attr('class','node_group')
     .append("circle")
     .attr("class", function(d) { return "node"})
-    .attr("id", function(d) { return d.id; })    
+    .attr("id", function(d) { return d.id; })  
+    .attr("python_id", function(d) { return d.python_id; })    
     .attr("r", 16)
     .call(force.drag);
 
@@ -243,8 +268,8 @@ function tick() {
 
 // *********** Run on script start ***********
 // SVG height an width
-var width = $(window).width()*1.05,
-    height = $(window).height()*1.05;
+var width = $(window).width()*1.01,
+    height = $(window).height()*1.01;
 
 var nodes = [],
     links = [];
@@ -268,10 +293,14 @@ var node = svg.selectAll(".node"),
     link = svg.selectAll(".link");
 
 // First of all, add initial node
-var a = {id: "starter",
-        headline:'This is a headline',
-        strapline:'The strapline data goes here too',
-        date:'1 Feb 2012'};
+var a = {id: "world2013aug20nsa-david-miranda-guardian-hard-drives",
+        python_id: 'world/2013/aug/20/nsa-david-miranda-guardian-hard-drives',
+        headline:'NSA files: UK and US at odds over destruction of Guardian hard drives',
+        headline_short:'NSA files: UK and US at odds...',
+        standfirst:'White House says it would be "difficult to imagine" US authorities adopting GCHQ tactics',
+        date:'21 Aug 2013',
+        image:'http://static.guim.co.uk/sys-images/Guardian/Pix/pictures/2013/8/20/1377030430592/Josh-Earnest-003.jpg',
+        readmore:'<a href="http://www.theguardian.com/world/2013/aug/20/nsa-david-miranda-guardian-hard-drives">Click here to read more on the Guardian website</a>'};
 nodes.push(a);
 links.push();
 start();
