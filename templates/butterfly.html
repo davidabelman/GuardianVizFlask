@@ -56,23 +56,47 @@
 
     <div id='main_body_area' class='container-fluid'>
 
-      <div class='row'>
+      <div id='guardian_search_div'>
+      <!-- Div shown initially showing user guardian search interface -->
+        <div class='col-sm-6'>
+          <h2>We start the visualisation with one 'seed' article.</h2>
+          <p>Search the Guardian for this first article.</p>
 
-        <div id='news_content_pane'>
-          <p id='date'></p>
-          <h3 id='headline'>Click on an article to see how a news story evolved in different directions...</h3>
-          <p id='standfirst'><br></p>
-          <div id='image'></div>
-          <div id='readmore'></div>
+          <input type="text" id='guardian_search_terms_input'>
+          <button id='guardian_search_terms_submit'>Search</button>
+          <i><br>NB: articles from early 2013 only.</i>
         </div>
+        <div id='results_div' class='col-sm-6 initially_hidden'>
+            <h2>Click on an article to start:</h2>
+            <div id='results_list'>
+              <!-- Results will go here -->
+            </div>
+        </div>
+      </div>
 
-        <div id='butterfly_pane'>
-          <!-- Content goes here from JS -->
-        </div>
+     
+
+      
+
+      <div id='visualisation_div' class='row initially_hidden'>
+      <!-- Div containing the news pane and the network graph, appears once seed article chosen -->
+
+          <div id='news_content_pane'>
+              <p id='date'></p>
+              <h3 id='headline'>Click on an article to see how a news story evolved in different directions...</h3>
+              <p id='standfirst'><br></p>
+              <div id='image'></div>
+              <div id='readmore'></div>
+          </div>
+
+          <div id='butterfly_pane'>
+            <!-- Content goes here from JS -->
+          </div>
 
       </div>
 
 </body>
-<script src="{{url_for('static', filename = 'js/butterfly.js')}}"></script>
+<script src="{{url_for('static', filename = 'js/butterfly_graph.js')}}"></script>
+<script src="{{url_for('static', filename = 'js/butterfly_seed.js')}}"></script>
 
 

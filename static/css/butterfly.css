@@ -14,6 +14,37 @@
   background-color: #fff;
 }
 
+.initially_hidden {
+  display: none;
+}
+
+#guardian_search_div {
+  padding: 10%;
+}
+
+#results_div {
+  margin-bottom: 60px;
+}
+
+.seed_date {
+  color: #777;
+  margin-bottom: -10px;
+  padding-left: 4px;
+}
+
+.seed_headline {
+  padding-left: 4px;
+}
+
+.seed_div {
+  padding: 3px;
+  cursor: pointer;
+}
+
+.seed_div:hover {
+  background: #dde;
+}
+
 #readmore {
   /*Link to read more on guardian website*/
   padding-top:10px;

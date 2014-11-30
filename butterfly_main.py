@@ -576,11 +576,11 @@ Or enter guardian URL (and will check if it exists)
 
 Butterfly expansion
 ===============
-0.4ish for threshold
-Filter out anything saying 'live' in ID - regex
+redo - 0.4ish for threshold
+redo - Filter out anything saying 'live' in ID - regex
 Only work with subset for a while to iron out mistakes
-For kmeans only consider articles between 1-90 days UNLESS there are not enough (say 10) in which case take the 10 youngest articles 
-If over 20 articles, take the 20 highest cosine similarities for kmeans
+done - For kmeans only consider articles between 1-90 days UNLESS there are not enough (say 10) in which case take the 10 youngest articles 
+maybe add this if needed - If over 20 articles, take the 20 highest cosine similarities for kmeans
 Once clusters found, pick highest from each cluster as before 
 -- (extension would be to take best pagerank/FB from top 3 cosine-similarities within each cluster, but don't bother)
 

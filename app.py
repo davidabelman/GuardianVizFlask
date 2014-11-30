@@ -92,30 +92,78 @@ def butterfly_get_related_articles():
 	# [(id, headline, strapline, date, date_difference, image, url), (...), (...)]
 	data = {'status':1,
 			'data': ajax_list_of_articles
-				# [
-				# 	{'python_id':'world/2013/aug/20/nsa-david-miranda-guardian-hard-drives',
-				# 	'id':'world/2013/aug/20/nsa-david-miranda-guardian-hard-drives'.replace('/',''),
-				# 	'headline':'Cardinal OBrien story',
-				# 	'standfirst':'Standfirst from AJAX',
-				# 	'date':'1 Dec 2014',
-				# 	'date_difference':'+2 days',
-				# 	'image':'http://static.guim.co.uk/sys-images/Guardian/Pix/pictures/2013/8/20/1377030430592/Josh-Earnest-003.jpg',
-				# 	'url':'http://www.theguardian.com/world/2013/aug/20/nsa-david-miranda-guardian-hard-drives'
-				# 	},
-				# 	{'python_id':'world/2013/may/18/cardinal-obrien-still-danger-say-accusers',
-				# 	'id': 'world/2013/may/18/cardinal-obrien-still-danger-say-accusers'.replace('/',''),
-				# 	'headline':'Hard disk story',
-				# 	'standfirst':'Standfirst 2 from AJAX',
-				# 	'date':'2 Dec 2014',
-				# 	'date_difference':'+3 days',
-				# 	'image':'http://static.guim.co.uk/sys-images/Guardian/Pix/pictures/2013/8/20/1377019341697/The-remains-of-the-hard-d-005.jpg',
-				# 	'url':'http://www.theguardian.com/world/2013/aug/23/nsa-prism-costs-tech-companies-paid'
-				# 	}
-				# ]
 			}
 
 	return json.dumps(data)
 
+@app.route('/_butterfly_search_guardian', methods=['GET', 'POST'])
+def butterfly_search_guardian():
+	"""
+	Given search query (TODO and a date range)
+	Return data from The Guardian search api
+	"""
+	testing = False
+	if testing:
+		data = {'status': '1', 'data': [{'headline': u'David Cameron to attend Bilderberg group meeting', 'date': u'2013-06-07T11:38:45Z', 'id': u'world/2013/jun/07/david-cameron-attend-bilderberg-group'}, {'headline': u'David Cameron and Europe at odds over benefit tourism issue', 'date': u'2013-10-14T23:03:00Z', 'id': u'world/2013/oct/15/david-cameron-europe-benefit-tourism'}, {'headline': u"Tamils hail David Cameron as 'god' but Sri Lankan president is not a believer", 'date': u'2013-11-15T22:12:00Z', 'id': u'world/2013/nov/15/david-cameron-visits-tamils-sri-lanka'}, {'headline': u'Sri Lanka: Cameron pushes for international war crimes inquiry', 'date': u'2013-11-16T10:47:09Z', 'id': u'world/2013/nov/16/sri-lanka-cameron-international-war-crimes-inquiry'}, {'headline': u'Sri Lanka defiant after Cameron calls for war crimes investigation', 'date': u'2013-11-17T00:00:00Z', 'id': u'world/2013/nov/16/sri-lanka-david-cameron-war-crime-allegations'}, {'headline': u'UK would welcome Chinese investment in HS2, says David Cameron', 'date': u'2013-12-03T09:47:31Z', 'id': u'world/2013/dec/03/uk-chinese-investment-hs2-david-cameron'}, {'headline': u'David Cameron: Mandela service offers world leaders chance for diplomacy', 'date': u'2013-12-10T09:35:12Z', 'id': u'world/2013/dec/10/david-cameron-mandela-service-diplomacy'}, {'headline': u'David Cameron shares bunk bed with Michael Owen on way to Afghanistan', 'date': u'2013-12-16T13:47:00Z', 'id': u'world/2013/dec/16/david-cameron-michael-owen-football-afghanistan'}, {'headline': u'David Cameron to challenge EU over surveillance drone programme plans', 'date': u'2013-12-19T00:01:17Z', 'id': u'world/2013/dec/19/david-cameron-eu-surveillance-drone-nato-security-europe'}, {'headline': u"Doctor's body repatriated as PM says Syrian regime 'must answer' for death", 'date': u'2013-12-22T19:26:26Z', 'id': u'world/2013/dec/22/british-doctor-abbas-khan-syria-cameron'}]}
+		return json.dumps(data)
+
+	# Get search query by AJAX
+	query = request.json['query']
+	# start_date = request.json['start_date']
+	# end_date = request.json['end_date']
+
+	results = general_functions.search_guardian_by_query(
+		query=query,
+		cosine_similarity_matrix=cosine_similarity_matrix,
+		pickle_or_database = 'pickle',
+		start_date='2013-01-01',
+		end_date='2013-12-30',
+		section='world',
+		guardian_page_size=100,
+		return_number=10
+	)
+
+	# Return status 0 if no results
+	if len(results)>0:
+		status='1'
+	else:
+		status='0'
+
+	# Return results
+	data = {'status':status,
+			'data': results}	
+	return json.dumps(data)
+
+
+@app.route('/_return_clean_article_by_id', methods=['GET', 'POST'])
+def return_clean_article_by_id():
+	"""
+	Given ID by AJAX
+	Look up article in Pickle or in database
+	Return clean version of headline, standfirst, image, etc. for use in butterfly visualisation
+	"""
+	print request.json
+	# ID from AJAX
+	article_id = request.json['python_id']
+
+	# If using pickle, load article using this ID
+	a = articles[article_id]
+	article_clean = {
+			'python_id':a['id'],
+			'id':a['id'].replace('/',''),
+			'headline':a['headline'],
+			'headline_short':a['headline'][0:30]+'...',
+			'standfirst':a['standfirst'],
+			'date':a['date'].strftime('%d %b %Y'),
+			'date_difference':'NA',
+			'image':a['thumbnail'],
+			'url':a['url'],
+			'readmore':"<a href='%s' target='_blank'>Click here to read more on the Guardian website</a>" %a['url']
+		}
+
+	print "Returning article data:"
+	print article_clean
+	return json.dumps({'status':'1', 'data':article_clean})
 
 if __name__ == '__main__':
 	app.run()

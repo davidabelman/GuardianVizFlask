@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 general_functions.py
 General functions used within project
@@ -128,4 +129,94 @@ def print_current_status():
 	# Number of articles analysed for cosine similarity
 	print "Cosine similarities calculated:", len(cosine_similarities)
 
+def search_guardian_by_query(
+		query,
+		cosine_similarity_matrix,
+		pickle_or_database = 'pickle',
+		start_date='2012-01-01',
+		end_date='2015-01-01',
+		section='world',
+		guardian_page_size=100,
+		return_number=10):
+	"""
+	Given query, a start date string, an end date string, a section (i.e. 'world')
+	Also given articles dict of all cosine_similarities (to check if we have each result saved)
+	  e.g. load_pickle('../open/data/articles_cosine_similarities.p')
+	TODO: will need to add in database functionality
+	Returns list of articles (and their headlines, etc.) for which we have data saved
+	Format is:
+	[{'date': u'2014-02-13T18:47:52Z',
+	  'headline': u'Execution of Arab Iranian poet Hashem Shaabani condemned by rights groups',
+	  'id': u'world/2014/feb/13/iran-middleeast',
+	  'standfirst': u'Poet and leading member of banned cultural organisation run by Ahwazi Arab minority reported hanged after public confession'},
+	 {'date': u'2014-02-18T19:21:00Z',
+	  'headline': u"Iran won't discuss military programme, say officials",
+	  'id': u'world/2014/feb/18/mohammad-javad-zarif-iran-political-will-final-nuclear-agreement',
+	  'standfirst': u"Iran's foreign minister and senior negotiator say only nuclear issues will be discussed as next round of talks begins in Vienna"}]
+	Process:
+	Forms query string
+	Requests a search from Guardian API and receives results
+	Filters results for ones that we have within our database/pickle
+	Picks out X (return_number) according to relevance ordering from Guardian
+	Reorder by date
+	"""
+	from urllib import quote_plus as clean_url
+	import urllib2
+	import json
 
+	# Query format
+	# "http://content.guardianapis.com/search?api-key=test&page-size=100&q=germany%20football§ion=world&from-date=2014-01-01&to-date=2014-10-27"
+	
+	main = 'http://content.guardianapis.com/search?'
+	parameters = [
+		'api-key=uu4qhyqqknrkhrsmahfwr2qs',
+		'page-size=%s' %guardian_page_size, 
+		'q=%s' %clean_url(query),		
+		'from-date=%s' %start_date,
+		'to-date=%s' %end_date,
+		# 'show-fields=standfirst'
+	]
+	if section:
+		parameters.append('section=%s' %section)
+	request = create_REST_request(main, parameters)
+	response = urllib2.urlopen(request).read()
+	page_data = json.loads(response);
+	try:
+		article_set = page_data['response']['results']
+	except:
+		print "Failed to retrieve result set."
+		return None
+	print "Received %s results." %page_data['response']['total']
+
+	# Check if each article is in articles pickle / in database (TODO: currently pickle)
+	if pickle_or_database == 'pickle':
+		filtered_article_set = [x for x in article_set if x['id'] in cosine_similarity_matrix]		
+	elif pickle_or_database == 'database':
+		# TODO
+		None
+	print "\nThese are the articles we have saved data for previously:"
+	print filtered_article_set
+
+	# Reduce to the number that we want to return to user, if we have more than this
+	short_article_set = filtered_article_set[0:return_number]
+
+	# Sort by date
+	sorted_article_set = sorted(short_article_set, key=lambda x: x['webPublicationDate'])
+	print "\nThis is the article set sorted by date:"
+	print sorted_article_set
+
+	# Return in correct format
+	return [{
+		'id':x['id'],
+		'headline':x['webTitle'],
+		'date':x['webPublicationDate']
+	} for x in sorted_article_set]
+
+# cosine_similarity_matrix = load_pickle('../open/data/articles_cosine_similarities.p')
+# r = search_guardian_by_query(
+# 	query = 'china democracy',
+# 	cosine_similarity_matrix = cosine_similarity_matrix,
+# 	start_date='2013-01-01',
+# 	end_date='2014-03-01',
+# 	guardian_page_size=100
+# 	)
