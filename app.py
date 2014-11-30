@@ -4,8 +4,8 @@ import json
 import general_functions
 # from flask.ext.script import Manager
 use_pickles_or_database = 'pickles'
-articles=general_functions.load_pickle('../open/data/articles_uk.p')
-cosine_similarity_matrix=general_functions.load_pickle('../open/data/articles_uk_cosine_similarities.p')
+articles=general_functions.load_pickle('../open/data/articles.p')
+cosine_similarity_matrix=general_functions.load_pickle('../open/data/articles_cosine_similarities.p')
 
 app = Flask(__name__)
 app.debug = True
@@ -84,7 +84,7 @@ def butterfly_get_related_articles():
 			'date_difference':days,
 			'image':a['thumbnail'],
 			'url':a['url'],
-			'readmore':"<a href='%s'>Click here to read more on the Guardian website</a>" %a['url']
+			'readmore':"<a href='%s' target='_blank'>Click here to read more on the Guardian website</a>" %a['url']
 		}
 		ajax_list_of_articles.append(article_clean)
 

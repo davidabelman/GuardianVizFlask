@@ -22,7 +22,7 @@ import options
 import datetime
 import general_functions
 stopwords = general_functions.create_stopword_list(extra_words = options.tfidf_extra_stopwords)
-debug = True
+debug = False
 
 
 ###### CREATING THE COSINE DICTIONARY #########
@@ -86,8 +86,7 @@ def article_type_is_bad(id_str):
 	Checks id_str (ID, e.g. 'world/gallery/2013/aug/19/pipe-band-championship-2013-glasgow') for banned terms, such as 'gallery', 'video', etc.
 	Returns True if any banned terms found...
 	"""
-	check = id_str#[0:30]  # Take only first part of ID
-	#TODO:make into regex
+	check = id_str[0:30]  # Take only first part of ID
 	banned_terms = ['video', 'gallery', 'picture', 'interactive', 'commentisfree', 'blog', 'live', 'shortcuts']
 	# Check each banned term
 	for x in banned_terms:
@@ -348,13 +347,10 @@ def given_article_id_get_top_related(article_id, future_or_past, cosine_similari
 		return [id_ for id_ in related_articles_and_scores]
 
 	# Loop through the IDs to create a mini article set
-	# Only consider 1-90 day articles, unless there are not enough, then fill up with youngst articles
-	mini_article_set = create_mini_article_set(
-		main_article_id = article_id,
-		related_articles_and_scores=related_articles_and_scores,
-		articles = articles,
-		day_range = (1,90)
-		)
+	mini_article_set = {}
+	for id_ in related_articles_and_scores:
+		# Copy from the main articles library to the mini article set
+		mini_article_set[id_] = articles[id_]
 
 	# TF-IDF of articles
 	ids, _, tfidf_sparse_matrix = articles_to_tfidf(mini_article_set)
@@ -371,71 +367,6 @@ def given_article_id_get_top_related(article_id, future_or_past, cosine_similari
 	
 	# Return list of IDs
 	return output
-
-
-def create_mini_article_set(
-		main_article_id, 
-		related_articles_and_scores,
-		articles, 
-		day_range=(1,90),
-		min_no_articles = 8):
-	"""
-	main_article_id = 'world/2014/nov...'
-	related_articles_and_scores = {u'world/2012/dec/27/central-african-republic-rebels-capital': 59, u'world/2012/dec/28/central-african-republis-us-embassy': 54,} --> related IDs, and their scores
-	articles = {'world/2012/de...':{'headline':'blah', 'standfirst':'blah blah'... etc}} --> main article collection
-	day_range = (1, 90) --> inclusive range of days after/before we include article (note default doesnt include same day articles, i.e. 0)
-	Function returns a mini set of articles (in the form of the main articles dict)
-	Only includes articles in the related_articles_and_scores dict who fulfil day_range condition
-	However, if total number is below minimum threshold (min_no_articles) we fill up to this number with youngest articles possible
-	"""
-	mini_article_set = {}
-	ids_and_day_diffs = []  # Temporary list to be filled like so: [(id, day_diff), (id, day_diff)...]
-	main_article_date = articles[main_article_id]['date']
-	if debug:
-		print "Firstly filtering articles for date range - can we find %s articles?" %(min_no_articles)
-	for id_ in related_articles_and_scores:
-		# Check date difference
-		related_article_date = articles[id_]['date']
-		day_diff = abs ( (main_article_date-related_article_date).days )
-		ids_and_day_diffs.append( (id_, day_diff) )
-		if day_diff>day_range[1] or day_diff<day_range[0]:
-			# Not in day range, skip
-			if debug:
-				print "Not including article - %s days difference..." %day_diff
-			continue
-		if debug:
-			print "Including article - %s days difference..." %day_diff
-		mini_article_set[id_] = articles[id_]
-
-	if debug:
-		print "We have %s articles found so far within date range." %(len(mini_article_set))
-	if len(mini_article_set)>=min_no_articles:	
-		if debug:
-			print "Returning %s articles.\n"	
-		return mini_article_set
-
-	# If we still need to add more, sort by day difference, taking earliest ones
-	if debug:
-		print "Not enough articles - sort by date and add closest dates..."
-	ids_and_day_diffs_sorted = sorted(ids_and_day_diffs, key=lambda y: y[1])[0:min_no_articles*2]
-
-	# Loop through and add smallest day_diff articles until we have enough to return
-	for id_, day_diff in ids_and_day_diffs_sorted:
-		# Ignore if we already have this ID
-		if id_ in mini_article_set:
-			continue
-		# Add article to our output
-		mini_article_set[id_] = articles[id_]
-		# Check if we have enough
-		if len(mini_article_set)==min_no_articles:
-			if debug:
-				print "Reaching minimum number, returning %s articles.\n" %(len(mini_article_set))
-			return mini_article_set
-
-	# Return mini_article_set, however long it is
-	if debug:
-		print "Didn't reach target, returning all articles we have (%s articles).\n" %(len(mini_article_set))
-	return mini_article_set
 
 
 def pick_top_id_from_each_cluster(ids_and_labels_and_scores):
@@ -514,6 +445,8 @@ def convert_vector_to_string(vector):
 			output_string += ' '
 	return output_string
 
+def return_birthday():
+	return '9 Jun 1987'
 
 # Create a NEW cosine similarity dictionary and save as pickle for ALL articles
 # WARNING: incremental_add=False means we start from a blank matrix
@@ -528,60 +461,18 @@ if False:
 if False:
 	a=general_functions.load_pickle('data/articles_uk.p')
 	m=general_functions.load_pickle('data/articles_uk_cosine_similarities.p')
-	ids = [  (u'world/2014/jan/27/nsa-gchq-smartphone-app-angry-birds-personal-data', 82),
-			 (u'world/2014/feb/02/david-miranda-detention-chilling-attack-journalism', 87),
-			 (u'world/2014/feb/14/court-challenge-mass-surveillance', 99),
-			 (u'world/2014/feb/18/merkel-phone-tapping-law-mi6-nigel-inkster', 103),
-			 (u'world/2014/feb/19/david-miranda-detention-lawful-court-glenn-greenwald',
-			  104),
-			 (u'world/2014/feb/27/gchq-interception-storage-webcam-images-condemned', 112),
-			 (u'world/2014/feb/27/gchq-insists-optic-nerve-program-legal-legislation-2000',
-			  112),
-			 (u'world/2014/feb/28/nsa-gchq-webcam-spy-program-senate-investigation', 113),
-			 (u'world/2014/feb/27/gchq-nsa-webcam-images-internet-yahoo', 113),
-			 (u'world/2014/mar/04/nsa-chief-keith-alexander-david-miranda', 117),
-			 (u'world/2014/apr/11/journalists-nsa-guardian-polk-award-snowden', 155),
-			 (u'world/2014/may/11/lack-oversight-nsa-menwith-hill', 185),
-			 (u'world/2014/may/15/david-miranda-appeal-high-court-ruling-detention-heathrow',
-			  189),
-			 (u'world/2014/may/23/surveillance-claims-boston-college-tapes', 197),
-			 (u'world/2014/jun/07/stephen-fry-denounces-uk-government-edward-snowden-nsa-revelations',
-			  212),
-			 (u'world/2014/jun/11/government-public-case-surveillance-state-theresa-may',
-			  216),
-			 (u'world/2014/jun/17/mass-surveillance-social-media-permitted-uk-law-charles-farr',
-			  222),
-			 (u'world/2014/jun/18/labour-merkel-nsa-phone-tapping-raf-croughton', 223),
-			 (u'world/2014/jun/18/government-surveillance-watchdog-loopholes', 223),
-			 (u'world/2014/jun/26/privacy-invasion-surveillance-intelligences-services-commissioner',
-			  231)]
- 	for id_,_ in ids:
- 		print '=========' 		
-		print "Finding top related for %s..." %id_
- 		print given_article_id_get_top_related(article_id=id_, future_or_past='future_articles', cosine_similarity_matrix=m, articles=a)
- 		print '=========\n'
+	given_article_id_get_top_related(article_id='world/2013/nov/07/nsa-gchq-surveillance-european-law-report', future_or_past='future_articles', cosine_similarity_matrix=m, articles=a)
 
 if False:
 	play_with_related_articles()
 
 """
 Notes
-When app starts:
-- choose an example story
-- or search by tag (could use guardian api or google for search if not by tag?)
-- or paste in guardian URL
-Create search function when app starts
-2 ways: 1 using pickle for testing, but real way will probably be search database by tag 
-Or enter guardian URL (and will check if it exists)
-
-Butterfly expansion
-===============
 0.4ish for threshold
-Filter out anything saying 'live' in ID - regex
+Filter out anything saying 'live' in ID
 Only work with subset for a while to iron out mistakes
 For kmeans only consider articles between 1-90 days UNLESS there are not enough (say 10) in which case take the 10 youngest articles 
 If over 20 articles, take the 20 highest cosine similarities for kmeans
-Once clusters found, pick highest from each cluster as before 
--- (extension would be to take best pagerank/FB from top 3 cosine-similarities within each cluster, but don't bother)
+Once clusters found, pick highest from each cluster as before (extension would be to take best pagerank/FB from top 3 cosine-similarities within each cluster, but don't bother)
 
 """

@@ -136,8 +136,8 @@ function start() {
   ITERATION+=1
 
   // Increase size of SVG by 5% on each run through, just to allow more room for network
-  height = height*1.05
-  width = width*1.05
+  height = height*1.12
+  width = width*1.08
   svg.attr('height', height).attr('width', width)
 
   // Remove 'fresh_node_label' class from all text
@@ -228,8 +228,8 @@ function start() {
 function tick() {
   // This runs on every tick of the animation, moving around the positions of nodes/text etc.
   // Node positions
-  var shift_x = ITERATION*10
-  var shift_y = ITERATION*20
+  var shift_x = ITERATION*22
+  var shift_y = ITERATION*33
 
 
   svg
@@ -294,7 +294,7 @@ var node = svg.selectAll(".node"),
 
 // First of all, add initial node
 var a = {id: "world2013aug20nsa-david-miranda-guardian-hard-drives",
-        python_id: 'world/2013/aug/20/nsa-david-miranda-guardian-hard-drives',
+        python_id: 'world/2013/feb/27/iran-turning-point-nuclear-talks',
         headline:'NSA files: UK and US at odds over destruction of Guardian hard drives',
         headline_short:'NSA files: UK and US at odds...',
         standfirst:'White House says it would be "difficult to imagine" US authorities adopting GCHQ tactics',
