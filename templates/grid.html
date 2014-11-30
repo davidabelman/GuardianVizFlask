@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	    <meta name="viewport" content="width=device-width, initial-scale=1">
+	    <meta name="description" content="Visualising Guardian news articles experiment">
+	    <meta name="author" content="David Abelman">
+	    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+	    <title>Weekly news map</title>
+	    <!-- Bootstrap core CSS -->
+	    <link href="{{url_for('static', filename = 'css/bootstrap.min.css')}}" rel="stylesheet">
+
+	    <!-- Custom styles for this template -->
+	    <link href="{{url_for('static', filename = 'css/grid.css')}}" rel="stylesheet">
+
+	    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+	    <!--[if lt IE 9]>
+	      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+	      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+	    <![endif]-->
+
+	    <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+		
+		<script src="{{url_for('static', filename = 'd3/d3.v3.js')}}"></script>
+		
+		<script src="{{url_for('static', filename = 'js/bootstrap-select.js', _external=True)}}"></script>
+
+    	<link href="{{url_for('static', filename = 'css/bootstrap-select.css')}}" rel="stylesheet">
+		
+		<script type="text/javascript" src="{{url_for('static', filename = 'js/grid.js')}}"></script>
+		<script type="text/javascript" src="{{url_for('static', filename = 'js/bigslide.js')}}"></script>
+		<script type="text/javascript" src="{{url_for('static', filename = 'js/jquery.leanModal.min.js')}}"></script>
+		
+		
+		<!-- start Mixpanel -->
+		<script type="text/javascript">(function(f,b){if(!b.__SV){var a,e,i,g;window.mixpanel=b;b._i=[];b.init=function(a,e,d){function f(b,h){var a=h.split(".");2==a.length&&(b=b[a[0]],h=a[1]);b[h]=function(){b.push([h].concat(Array.prototype.slice.call(arguments,0)))}}var c=b;"undefined"!==typeof d?c=b[d]=[]:d="mixpanel";c.people=c.people||[];c.toString=function(b){var a="mixpanel";"mixpanel"!==d&&(a+="."+d);b||(a+=" (stub)");return a};c.people.toString=function(){return c.toString(1)+".people (stub)"};i="disable track track_pageview track_links track_forms register register_once alias unregister identify name_tag set_config people.set people.set_once people.increment people.append people.track_charge people.clear_charges people.delete_user".split(" ");
+		for(g=0;g<i.length;g++)f(c,i[g]);b._i.push([a,e,d])};b.__SV=1.2;a=f.createElement("script");a.type="text/javascript";a.async=!0;a.src="//cdn.mxpnl.com/libs/mixpanel-2.2.min.js";e=f.getElementsByTagName("script")[0];e.parentNode.insertBefore(a,e)}})(document,window.mixpanel||[]);
+		mixpanel.init("6bb49e3964cafa80b12ab651cbb3ccac");</script>
+		<!-- end Mixpanel -->
+
+		<!-- start Google Analytics -->
+		<!-- end Google Analytics -->
+		
+	</head>
+	
+	<body>
+
+		<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	      <div class="container-fluid">
+	        <div class="navbar-header">
+	          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+	            <span class="sr-only">Toggle navigation</span>
+	            <span class="icon-bar"></span>
+	            <span class="icon-bar"></span>
+	            <span class="icon-bar"></span>
+	          </button>
+	          <a class="navbar-brand" href="/">Guardian news visualisations</a>
+	        </div>
+	        <div class="navbar-collapse collapse">
+	          <ul class="nav navbar-nav navbar-right">
+	            <li><a href="/">Other visualisations</a></li>
+	            <li><a id='about_link' href="#">About this visualisation</a></li>
+	            <li><a href="#options" class="options-link">Options</a></li>
+	            <li><a href="http://www.davidabelman.co.uk" target="_blank">David Abelman</a></li>
+	          </ul>
+	        </div>
+	      </div>
+	    </div>
+
+	    <nav id="options" class="panel panel-primary" role="navigation">
+	      <div class="panel-heading">
+		    <h3 class="panel-title"></h3>
+		  </div>
+	    	<div class="panel-body">
+				    <h4>Time-span</h4>
+				    
+						    <input type="radio" name="dayrange" value="2" class="redraw_viz">
+						    <span>2 days</span>
+						    
+						    <input type="radio" name="dayrange" value="7" class="redraw_viz" checked='checked'>
+						    <span>7 days</span>
+
+						    <input type="radio" name="dayrange" value="30" class="redraw_viz">
+						    <span>30 days</span>
+					
+				    
+
+				    <h4 class='add_space'>Tags</h4>	
+				    
+						    <input type="radio" name="tag" value="world" class="redraw_viz" checked='checked'>
+						    <span>World news</span>
+						    
+						    <input type="radio" name="tag" value="uk" class="redraw_viz" >
+						    <span>UK news</span>
+					
+
+
+				    <h4 class='add_space'>Shapes</h4>
+					     
+					     	<input type="radio" name="corner_radius" value=100 id='rect_to_circle' checked='checked'>
+						    <span>Circles</span>
+
+						    <input type="radio" name="corner_radius" value=1 id='circle_to_rect' >
+						    <span>Squares</span>
+						
+						    
+
+					<h4 class='add_space'>Colours</h4>
+					     
+						    <input type="radio" name='block_colours' value="cluster" class = 'recolour_viz' checked='checked' >
+						    <span>Topic</span>
+						    
+						    <input type="radio" name='block_colours' value="recency" class='recolour_viz'>
+						    <span>Recency</span>
+
+						    <input type="radio" name='block_colours' value="fb" class = 'recolour_viz'>
+						    <span>Popularity</span>
+						 
+
+					<h4 class='add_space'>Labels</h4>
+					     
+						    <input type="radio" name='tag_visibility' value="visible" id='tag_show' checked='checked'>
+						    <span>Guardian Tag</span>
+
+						    <input type="radio" name='tag_visibility' value="none" id='tag_hide'>
+						    <span>None</span>
+
+					<h4 class='add_space'></h4>
+						 
+				
+
+		  	</div>
+			<div class="panel-footer" href="#options" class="options-link">
+				<a href="#options" class="options-link">
+					<!-- Close
+					<span class="glyphicon glyphicon-hand-right"></span> -->
+					
+				</a>
+			</div>
+		    
+		<div class='floating-menu'>
+			<a href="#options" class="options-link">
+				<span class="glyphicon glyphicon-hand-left"></span>
+				Visualisation options
+			</a>
+		</div>
+
+		</nav>
+		
+		<!-- Main body of the page with grid and article text -->
+		<div class='container'>
+			<div class="row padder"></div>
+			
+					<div id="about_visualisation_modal">
+						<p>This visualisation scrapes data from <a href='http://www.theguardian.com' target="_blank">theguardian.com</a> website, and displays the articles in a grid format, where related subject matters should appear near to one another across the whole grid.</p>
+						<p>Firstly, the articles are analysed for content and flattened to two dimensions using principal components analysis (using all words from the headlines, standfirsts and tags as features), and are then skewed further into a regular 2D grid. Secondly (and separately from the principal components anlaysis), K-means clustering is applied on the articles, assigning some 'topic' to each article: to see these topic assignments, select 'Topic' as the colour source (this is the default setting). Different topics (as determined by K-means) are represented by different colours. These approximately align with the PCA-driven layout. Other ways to colour the articles are by popularity (this data is extracted from Facebook share data) and article recency.</p><p>All analysis is performed in Python, and visualisation using the <a href='http://www.d3js.org' target="_blank">D3.js</a> library.</p>
+					</div>
+
+			<div class="row">
+				<div class="col-sm-12 col-lg-6">
+					<div id='grid'>
+					<!--Grid goes here-->
+					</div>
+				</div>
+
+				<div class="col-sm-12 col-lg-6">
+					<div id='newspaper_text_and_options' data-spy="affix" class='affix' class="col-sm-11 col-lg-4">
+						
+							<h5 id='date' >
+								<!--Date goes here-->
+							</h5>
+
+							<h3 id='headline'>			
+								Hover over the visualisation
+							</h3>
+
+							<p id='standfirst' >
+								Click on a block to open the article in a new window. All stories and data from <a href='http://www.theguardian.com'>theguardian.com</a>.
+							</p>						
+					</div>
+				</div>
+			</div>
+		</div>
+
+		
+
+
+	</body>
+	<script>
+
+	    $(document).ready(function() {
+	        $('.options-link').bigSlide();
+
+	        // Prepare 'about' modal
+	        $('#about_link').leanModal()
+	        $('#about_link').click( function() {
+	        	$('#about_visualisation_modal').fadeIn()
+	        })
+	    });
+	    $('.selectpicker').selectpicker();
+
+	    // Draw first bunch of squares
+	    json = draw_squares()
+
+
+	    //Removing and adding labels
+	    var remove_labels = function() {
+			$('svg text').hide('medium')
+			mixpanel.track("Grid - hide labels");
+		}
+		$('#tag_hide').click( function() {remove_labels()} )
+
+		var show_labels = function() {
+			$('svg text').show('medium')
+		}
+		$('#tag_show').click( function() {show_labels()} )
+
+		//Converting circles to squares and back
+		var circle_to_rect = function() {
+			d3.selectAll("svg rect")
+			    .transition()
+			    .duration(1000)
+			    .attr("rx",100)
+			}
+		$('#rect_to_circle').click( function() {circle_to_rect()} )
+		var rect_to_circle = function() {
+			d3.selectAll("svg rect")
+			    .transition()
+			    .duration(1000)
+			    .attr("rx",1)
+			}
+		$('#circle_to_rect').click( function() {rect_to_circle()} )
+
+		//Loading different datasets
+		$('.redraw_viz').click( function() {
+			remove_SVG_draw_squares();
+		} )
+
+
+		//Altering the colours different datasets
+		$('.recolour_viz').click( function() {
+			colourByVariable( $('input[name=block_colours]:checked').val() )
+		} )
+
+	</script>
+</html>
+

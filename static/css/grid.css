@@ -1,0 +1,115 @@
+#options .panel-heading {
+	background: #222 !important;
+	color: #8D8D8D !important;
+}
+
+#options {
+	border: 0px !important;
+	z-index:2 !important;
+}
+
+#options .panel-body {
+	background: #F5F5F5 !important;
+}
+
+#options .panel-body span {
+	padding-right: 10px;
+	padding-left: 2px;
+}
+
+#options .panel-body .add_space {
+	padding-top: 10px;
+}
+
+#options .panel-footer {
+	text-align: right !important;
+	background: #222 !important;
+}
+
+#options .panel-footer a{
+	color: #888 !important;
+}
+
+#options .panel-footer a:hover {
+	color: #eee !important;
+	text-decoration: none;
+}
+
+.padder {
+	padding: 30px;
+}
+
+#date {
+	padding-top:12px;
+}
+
+#newspaper_text_and_options {
+	padding-right: 60px;
+}
+
+#grid rect { cursor: pointer; cursor: hand; }
+
+#options-button {
+	padding-left: 10px;
+	font-size: small;
+	text-align: right;
+}
+
+.floating-menu {
+	position: fixed;
+	background: #222;
+	border: 0px solid transparent;
+	padding:5px;
+	z-index: 100;
+	bottom: 5%;
+	right: 0px;}
+
+.floating-menu span {
+	padding-right: 6px;
+	padding-left: 3px;
+}
+.floating-menu a {
+	color: #888 !important;
+}
+
+.floating-menu a:hover {
+	color: #eee !important;
+	text-decoration: none;
+}
+
+#frosted_about {
+    -webkit-filter: blur(20px);
+    -moz-filter: blur(20px);
+    -o-filter: blur(20px);
+    -ms-filter: blur(20px);
+    filter: blur(20px);
+    opacity: 0.4;
+    color: black;
+}
+
+#lean_overlay {
+	-webkit-filter: blur(50px);
+    -moz-filter: blur(50px);
+    -o-filter: blur(50px);
+    -ms-filter: blur(50px);
+    filter: blur(50px);
+    position: fixed;
+    z-index:100;
+    top: 0px;
+    left: 0px;
+    height:100%;
+    width:100%;
+    background: #000;
+    display: none;
+}
+
+#about_visualisation_modal {
+	background: white;
+	display: block;
+	position: fixed;
+	opacity: 1;
+	z-index: 101;
+	padding: 5%;
+	margin: 7%;
+	display: none;
+}
