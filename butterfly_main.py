@@ -622,6 +622,16 @@ if False:
 
 """
 Notes
+TO DOs:
+- Write documentation properly on how to use web app and how to create articles, butterzip, etc. files
+- Upload to Heroku and sort out scikit learn
+- Add date filter to starting screen
+- Remake the cosine similarity with updated paratmeters, and run butterzip etc. on it
+- Load articles post August 2014 from Guardian...
+- Investigate if better to use TFIDF than cosine similarity (probably, but not worth changing...)
+- Write a blog post
+
+
 When app starts:
 - choose an example story
 - or search by tag (could use guardian api or google for search if not by tag?)
