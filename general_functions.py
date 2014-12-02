@@ -202,8 +202,10 @@ def search_guardian_by_query(
 	# Check if each article is in articles pickle / in database (TODO: currently pickle)
 	if pickle_or_database == 'pickle':
 		filtered_article_set = [x for x in article_set 
+								# Only show if in cosine_sim_matrix
 								if x['id'] in cosine_similarity_matrix
-								if len(cosine_similarity_matrix[x['id']]['future_articles'])>0]		
+								# Only show if 2+ articles in future_articles list
+								if len(cosine_similarity_matrix[x['id']]['f'])>=2]		
 	elif pickle_or_database == 'database':
 		# TODO
 		None

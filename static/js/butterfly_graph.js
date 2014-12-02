@@ -82,7 +82,7 @@ function make_nodes_clickable() {
         url: '/_butterfly_get_related_articles',
         data: JSON.stringify ({
           'python_id':python_id_clicked,
-          'future_or_past':'future_articles'
+          'future_or_past':'f'
         }, null, '\t'),
         contentType: 'application/json;charset=UTF-8',
         type: "POST",

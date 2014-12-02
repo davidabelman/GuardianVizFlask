@@ -3,17 +3,18 @@ from butterfly_main import given_article_id_get_top_related
 import json
 import general_functions
 import datetime
-# from flask.ext.script import Manager
 use_pickles_or_database = 'pickles'
 print "Importing articles..."
 from articles_butterzip import articles
 print "Importing cosine similarity matrix..."
 from cosine_similarity_matrix_butterzip import cosine_similarity_matrix
+print "Importing lookups"
+from countid_to_guardianid import countid_to_guardianid
 
 
 app = Flask(__name__)
 app.debug = True
-# manager = Manager(app)
+
 
 @app.route('/')
 def home():
@@ -59,8 +60,9 @@ def butterfly_get_related_articles():
 			article_id=article_id,
 			future_or_past=future_or_past,
 			cosine_similarity_matrix=cosine_similarity_matrix,
-			articles=articles)
-		# Get list of the date differences from the original article clicked on
+			articles=articles,
+			countid_to_guardianid=countid_to_guardianid)
+		# Get list of the date differences from the original article clicked on		
 		date_differences = [str((articles[id_]['date']-articles[article_id]['date']).days)+' days later' for id_ in ids]
 		# So we have IDs and their date differences: [(world/2014/.., 4 days), (world/2013/.., 12 days)...]
 		ids_and_dates = zip(ids, date_differences)

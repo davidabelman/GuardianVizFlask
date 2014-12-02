@@ -23,6 +23,7 @@ import math
 import pprint
 from collections import Counter
 import options
+reload(options)
 import datetime
 import general_functions
 stopwords = general_functions.create_stopword_list(extra_words = options.tfidf_extra_stopwords)
@@ -313,17 +314,48 @@ def create_butterzip_files():
 		filename = '../flask/articles_butterzip.py')
 
 	# 2) Create simpler ID version of cosine_similarity_matrix
-	# TODO: for now, just saving as a Python module
+	
+	# We need to create lookups for both ways
+	# i.e. guardianid_to_countid = {'world/2014/Nov...':1, 'world/2014/Dec...':2,}
+	# i.e. countid_to_guardianid = {1:'world/2014/Nov...', 2:'world/2014/Dec...',}
+	guardianid_to_countid = {}
+	countid_to_guardianid = {}
+	counter = 0
+	for id_ in cosine_similarity_matrix:
+		counter+=1
+		guardianid_to_countid[id_]=counter
+		countid_to_guardianid[counter]=id_
+
 	general_functions.write_to_python_module(
-		data = cosine_similarity_matrix,
+		data = guardianid_to_countid,
+		variable_name = 'guardianid_to_countid',
+		filename = '../flask/guardianid_to_countid.py')	
+	general_functions.write_to_python_module(
+		data = countid_to_guardianid,
+		variable_name = 'countid_to_guardianid',
+		filename = '../flask/countid_to_guardianid.py')	
+
+	# And now we create a cosine_similarity_matrix_butterzip (i.e. reduced cosine_similarity_matrix) using these IDs
+	cosine_similarity_matrix_butterzip = {}
+	for id_ in cosine_similarity_matrix:
+		# Get list of future articles and past articles for this ID within c_s_m
+		future_articles = cosine_similarity_matrix[id_]['future_articles']
+		past_articles = cosine_similarity_matrix[id_]['past_articles']
+		# Convert these guardianids to countids within the lists
+		future_articles_butterzip = dict ( [ (guardianid_to_countid[key], future_articles[key]) for key in future_articles if key in guardianid_to_countid] )
+		past_articles_butterzip = dict ( [ (guardianid_to_countid[key], past_articles[key]) for key in past_articles if key in guardianid_to_countid] )
+		# Save entries to butterzipped new cosine_similarity_matrix dict
+		# Use 'f' instead of 'future_articles'
+		# Use 'p' instead of 'past_articles'
+		cosine_similarity_matrix_butterzip[id_] = {
+			'f':future_articles_butterzip,
+			'p':past_articles_butterzip
+		}
+
+	general_functions.write_to_python_module(
+		data = cosine_similarity_matrix_butterzip,
 		variable_name = 'cosine_similarity_matrix',
 		filename = '../flask/cosine_similarity_matrix_butterzip.py')
-
-def create_python_file():
-	l = [1,2,3,4]
-	f = open('testing.py', 'w')
-	f.write(str(l))
-	f.close()
 
 
 ###### SELECTING TOP RELATED ARTICLES #########
@@ -383,7 +415,7 @@ def play_with_related_articles(a=None, m=None):
 		id_ = id_out[number]
 
 
-def given_article_id_get_top_related(article_id, future_or_past, cosine_similarity_matrix, articles):
+def given_article_id_get_top_related(article_id, future_or_past, cosine_similarity_matrix, articles, countid_to_guardianid):
 	"""
 	Given an article ID (e.g. 'world/2013/aug/19/...') and either 'past_articles' or 'future_articles'
 	Look up article in cosine_similarity matrix to find related IDs in past or future
@@ -393,8 +425,13 @@ def given_article_id_get_top_related(article_id, future_or_past, cosine_similari
 	Pull out top article for each cluster
 	"""
 	# Related article IDs in the form:
-	# {u'world/2012/dec/27/central-african-republic-rebels-capital': 59, u'world/2012/dec/28/central-african-republis-us-embassy': 54,}   
+	# {43: 59, 901: 54,}   
 	related_articles_and_scores = cosine_similarity_matrix[article_id][future_or_past]
+
+	# Related article IDs in the form:
+	# {u'world/2012/dec/27/central-african-republic-rebels-capital': 59, u'world/2012/dec/28/central-african-republis-us-embassy': 54,}  
+	# i.e. convert the counterid to a guardianid
+	related_articles_and_scores = dict( [ (countid_to_guardianid[key], related_articles_and_scores[key]) for key in related_articles_and_scores] )
 
 	# If we don't have many articles, just return the articles we have
 	if len(related_articles_and_scores)<=3:
@@ -582,46 +619,6 @@ if False:
 if False:
 	create_butterzip_files()
 
-# For testing purposes
-if False:
-	a=general_functions.load_pickle('data/articles_uk.p')
-	m=general_functions.load_pickle('data/articles_uk_cosine_similarities.p')
-	ids = [  (u'world/2014/jan/27/nsa-gchq-smartphone-app-angry-birds-personal-data', 82),
-			 (u'world/2014/feb/02/david-miranda-detention-chilling-attack-journalism', 87),
-			 (u'world/2014/feb/14/court-challenge-mass-surveillance', 99),
-			 (u'world/2014/feb/18/merkel-phone-tapping-law-mi6-nigel-inkster', 103),
-			 (u'world/2014/feb/19/david-miranda-detention-lawful-court-glenn-greenwald',
-			  104),
-			 (u'world/2014/feb/27/gchq-interception-storage-webcam-images-condemned', 112),
-			 (u'world/2014/feb/27/gchq-insists-optic-nerve-program-legal-legislation-2000',
-			  112),
-			 (u'world/2014/feb/28/nsa-gchq-webcam-spy-program-senate-investigation', 113),
-			 (u'world/2014/feb/27/gchq-nsa-webcam-images-internet-yahoo', 113),
-			 (u'world/2014/mar/04/nsa-chief-keith-alexander-david-miranda', 117),
-			 (u'world/2014/apr/11/journalists-nsa-guardian-polk-award-snowden', 155),
-			 (u'world/2014/may/11/lack-oversight-nsa-menwith-hill', 185),
-			 (u'world/2014/may/15/david-miranda-appeal-high-court-ruling-detention-heathrow',
-			  189),
-			 (u'world/2014/may/23/surveillance-claims-boston-college-tapes', 197),
-			 (u'world/2014/jun/07/stephen-fry-denounces-uk-government-edward-snowden-nsa-revelations',
-			  212),
-			 (u'world/2014/jun/11/government-public-case-surveillance-state-theresa-may',
-			  216),
-			 (u'world/2014/jun/17/mass-surveillance-social-media-permitted-uk-law-charles-farr',
-			  222),
-			 (u'world/2014/jun/18/labour-merkel-nsa-phone-tapping-raf-croughton', 223),
-			 (u'world/2014/jun/18/government-surveillance-watchdog-loopholes', 223),
-			 (u'world/2014/jun/26/privacy-invasion-surveillance-intelligences-services-commissioner',
-			  231)]
- 	for id_,_ in ids:
- 		print '=========' 		
-		print "Finding top related for %s..." %id_
- 		print given_article_id_get_top_related(article_id=id_, future_or_past='future_articles', cosine_similarity_matrix=m, articles=a)
- 		print '=========\n'
-
-# For testing purposes
-if False:
-	play_with_related_articles()
 
 """
 Notes
