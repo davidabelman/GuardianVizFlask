@@ -6,6 +6,10 @@ Butterfly effect visualisation
 Notes:
 1) Similarity value found between all pairs of articles based on tag, headline, and strapline. These are found by cosine similarity, and pairwise values are stored [TODO: either in a sparse matrix form, if we can store this within Flask, or in a database if we have to...]. We only need to store values if they are above a certain threshold. These are all calculated on a one off basis at first, and as new articles are crawled, we need to calculate pairwise similarity with all existing articles and store these values. Note that for each value stored, we need to store it either within 'future_articles' or 'past_articles'.
 
+1b) Once similarity matrix created as a pickle, along with article matrix, we can run a function to reduce the size of these:
+	--> articles pickle turned to articles_butterzip pickle (only stores the relevant information in the file), and saved as a python module
+	--> cosine_sim_matrix turned to cosine_sim_matrix_butterzip pickle (uses lookup codes instead of ID), and then saved as python module
+
 2) For all similar articles (say 20 of them) we run some type of clustering [TODO: topic analysis, LDA, or K-means] and form 2 or 3 topics of similar articles. Number of topics may depend on how many similar articles there are.
 
 3) For each topic we want to select the most relevant article to display to the user. This should be based on its PageRank, its Facebook shares, and its date. Details to be decided...
@@ -273,6 +277,55 @@ def create_cosine_similarity_pickle_all_articles(threshold=0.5, incremental_add=
 	print "TOTAL TIME:", t2 - t1
 
 
+###### CREATING THE BUTTERZIP FILES #########
+# These are modules containing all article and cosine_matrix information in reasonably compressed form...
+def create_butterzip_files():
+	""""
+	1) Creates articles_butterzip.p and articles_butterzip.py:
+		... these only contain articles in the cosine_similarity_matrix
+		... these only contain fields used in the butterfly viz (id, headline, strapline, image, date) 
+	2) Creates cosine_similarity_matrix_butterzip, which is a copy of cosine_similarity_matrix but uses simpler IDs (from lookup). Also need to create the lookup both ways for this.
+	"""
+	print "Creating butterzip files..."
+
+	# Load main articles and cosine similarites pickles created previously
+	articles = general_functions.load_pickle(filename = options.current_articles_path)
+	cosine_similarity_matrix = general_functions.load_pickle(filename = options.current_articles_path_cosine_similarites)
+
+	# 1) Create new articles (articles_butterzip)
+	articles_butterzip = {}
+	for id_ in cosine_similarity_matrix:
+		article_barebones = {
+			'headline':articles[id_]['headline'],
+			'standfirst':articles[id_]['standfirst'],
+			'date':articles[id_]['date'],
+			'thumbnail':articles[id_]['thumbnail'],
+			'tags':articles[id_]['tags']
+		}
+		articles_butterzip[id_] = article_barebones
+	# Save this as a pickle and a file
+	general_functions.save_pickle(
+		data = articles_butterzip, 
+		filename = options.current_articles_path_butterzip)
+	general_functions.write_to_python_module(
+		data = articles_butterzip,
+		variable_name = 'articles',
+		filename = '../flask/articles_butterzip.py')
+
+	# 2) Create simpler ID version of cosine_similarity_matrix
+	# TODO: for now, just saving as a Python module
+	general_functions.write_to_python_module(
+		data = cosine_similarity_matrix,
+		variable_name = 'cosine_similarity_matrix',
+		filename = '../flask/cosine_similarity_matrix_butterzip.py')
+
+def create_python_file():
+	l = [1,2,3,4]
+	f = open('testing.py', 'w')
+	f.write(str(l))
+	f.close()
+
+
 ###### SELECTING TOP RELATED ARTICLES #########
 """
 Given article IDs
@@ -348,7 +401,7 @@ def given_article_id_get_top_related(article_id, future_or_past, cosine_similari
 		return [id_ for id_ in related_articles_and_scores]
 
 	# Loop through the IDs to create a mini article set
-	# Only consider 1-90 day articles, unless there are not enough, then fill up with youngst articles
+	# Only consider 1-90 day articles, unless there are not enough, then fill up with youngest articles
 	mini_article_set = create_mini_article_set(
 		main_article_id = article_id,
 		related_articles_and_scores=related_articles_and_scores,
@@ -525,6 +578,11 @@ if False:
 if False:
 	create_cosine_similarity_pickle_all_articles(incremental_add=True)
 
+# Create a smaller articles pickle, and python module, based on articles in cosine similarity dict, and only including relevant fields
+if False:
+	create_butterzip_files()
+
+# For testing purposes
 if False:
 	a=general_functions.load_pickle('data/articles_uk.p')
 	m=general_functions.load_pickle('data/articles_uk_cosine_similarities.p')
@@ -561,6 +619,7 @@ if False:
  		print given_article_id_get_top_related(article_id=id_, future_or_past='future_articles', cosine_similarity_matrix=m, articles=a)
  		print '=========\n'
 
+# For testing purposes
 if False:
 	play_with_related_articles()
 
@@ -574,8 +633,19 @@ Create search function when app starts
 2 ways: 1 using pickle for testing, but real way will probably be search database by tag 
 Or enter guardian URL (and will check if it exists)
 
+Setup
+=====
+Database:
+-- when searching guardian and seeing if we have article, needs to do 20 or so(?) calls to database to see if each article is in it
+-- 
+Python modules
+-- convert pickles into python modules to load within heroku
+-- we can reduce size of articles just by using format {'id':{'headline':'blah', 'standfirst':'blah blah', 'thumbnail':'url'}} and only including articles for which we have cosine data
+-- we can reduce size of cosine matrix by using lookup codes instead of full ids
+
 Butterfly expansion
 ===============
+investigate - should i be using tfidf instead of cosine similarity??
 redo - 0.4ish for threshold
 redo - Filter out anything saying 'live' in ID - regex
 Only work with subset for a while to iron out mistakes

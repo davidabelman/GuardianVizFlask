@@ -6,13 +6,14 @@ from general_functions import *
 
 # Paths
 path_choice = {
-	'all' : "data/articles.p",
-	'uk' : "data/articles_uk.p",
-	'uk_1_wk' : "data/articles_uk_1_wk.p",
-	'sample' : "data/articles_subset.p",
+	'all' : "../open/data/articles.p",
+	'uk' : "../open/data/articles_uk.p",
+	'uk_1_wk' : "../open/data/articles_uk_1_wk.p",
+	'sample' : "../open/data/articles_subset.p",
 }
 current_articles_path = path_choice [ 'all' ]
 current_articles_path_cosine_similarites = current_articles_path[0:-2]+'_cosine_similarities.p'
+current_articles_path_butterzip = current_articles_path[0:-2]+'_butterzip.p'
 
 # Datetime for crawl
 crawl_start_datetime = datetime.datetime(2014,7,22)  # Inclusive of this date!

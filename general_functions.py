@@ -26,6 +26,17 @@ def save_pickle(data, filename, silent = False):
 		print "Saving pickle (%s)" %(filename)
 	pickle.dump( data, open( filename, "wb" ) )
 
+def write_to_python_module(data, variable_name, filename, silent = False):
+	"""
+	Saves a variable to a python module
+	"""
+	f = open(filename, 'w')
+	f.write('import datetime\n')
+	f.write('%s = %s' %(variable_name, str(data)))
+	f.close()
+	if not silent:
+		print "Saving file (%s)" %(filename)
+
 def export_dict_to_json(data, path):
 	"""
 	Write a python element to JSON
@@ -190,7 +201,9 @@ def search_guardian_by_query(
 
 	# Check if each article is in articles pickle / in database (TODO: currently pickle)
 	if pickle_or_database == 'pickle':
-		filtered_article_set = [x for x in article_set if x['id'] in cosine_similarity_matrix]		
+		filtered_article_set = [x for x in article_set 
+								if x['id'] in cosine_similarity_matrix
+								if len(cosine_similarity_matrix[x['id']]['future_articles'])>0]		
 	elif pickle_or_database == 'database':
 		# TODO
 		None

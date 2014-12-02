@@ -2,10 +2,14 @@ from flask import Flask, render_template, request
 from butterfly_main import given_article_id_get_top_related
 import json
 import general_functions
+import datetime
 # from flask.ext.script import Manager
 use_pickles_or_database = 'pickles'
-articles=general_functions.load_pickle('../open/data/articles.p')
-cosine_similarity_matrix=general_functions.load_pickle('../open/data/articles_cosine_similarities.p')
+print "Importing articles..."
+from articles_butterzip import articles
+print "Importing cosine similarity matrix..."
+from cosine_similarity_matrix_butterzip import cosine_similarity_matrix
+
 
 app = Flask(__name__)
 app.debug = True
@@ -72,19 +76,19 @@ def butterfly_get_related_articles():
 	# Get related article data and in correct format
 	# (Can use either saved pickle, or look up in nosql database)
 	ajax_list_of_articles = []
-	for i,days in ids_and_dates:
-		a = articles[i]
+	for article_id,days in ids_and_dates:
+		a = articles[article_id]
 		article_clean = {
-			'python_id':a['id'],
-			'id':a['id'].replace('/',''),
+			'python_id':article_id,
+			'id':article_id.replace('/',''),
 			'headline':a['headline'],
 			'headline_short':a['headline'][0:30]+'...',
 			'standfirst':a['standfirst'],
 			'date':a['date'].strftime('%d %b %Y'),
 			'date_difference':days,
 			'image':a['thumbnail'],
-			'url':a['url'],
-			'readmore':"<a href='%s' target='_blank'>Click here to read more on the Guardian website</a>" %a['url']
+			'url':'http://www.theguardian.com/'+article_id,
+			'readmore':"<a href='http://www.theguardian.com/%s' target='_blank'>Click here to read more on the Guardian website</a>" %article_id
 		}
 		ajax_list_of_articles.append(article_clean)
 
@@ -149,16 +153,16 @@ def return_clean_article_by_id():
 	# If using pickle, load article using this ID
 	a = articles[article_id]
 	article_clean = {
-			'python_id':a['id'],
-			'id':a['id'].replace('/',''),
+			'python_id':article_id,
+			'id':article_id.replace('/',''),
 			'headline':a['headline'],
 			'headline_short':a['headline'][0:30]+'...',
 			'standfirst':a['standfirst'],
 			'date':a['date'].strftime('%d %b %Y'),
 			'date_difference':'NA',
 			'image':a['thumbnail'],
-			'url':a['url'],
-			'readmore':"<a href='%s' target='_blank'>Click here to read more on the Guardian website</a>" %a['url']
+			'url':'http://www.theguardian.com/'+article_id,
+			'readmore':"<a href='http://www.theguardian.com/%s' target='_blank'>Click here to read more on the Guardian website</a>" %article_id
 		}
 
 	print "Returning article data:"
