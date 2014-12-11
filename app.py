@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request
-from butterfly_main import given_article_id_get_top_related
+# from butterfly_main import given_article_id_get_top_related
 import json
-import general_functions
+# import general_functions
 import datetime
 use_pickles_or_database = 'pickles'
 print "Importing articles..."
