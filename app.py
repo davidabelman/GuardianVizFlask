@@ -67,6 +67,7 @@ def butterfly_get_related_articles():
 	else:
 		# Just look up the frozen values for top kmeans picks, saved in articles file
 		ids = articles[article_id][future_or_past[0]]  # i.e. ['f'] or ['p']
+		print "Related articles to show are:", ids
 
 	# Get list of the date differences from the original article clicked on		
 	if future_or_past=='f':

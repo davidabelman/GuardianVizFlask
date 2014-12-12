@@ -56,7 +56,7 @@ function make_nodes_clickable() {
       // Set force charge and friction
       // Initialsed previously with weak charge to avoid bouncing off screen
         setTimeout( function() {
-          force.charge(-3000).friction(0.7).linkDistance(200)
+          force.charge(-4000).friction(0.7).linkDistance(220)
         },1000)
       
 

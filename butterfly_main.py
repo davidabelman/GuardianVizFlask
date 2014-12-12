@@ -91,14 +91,12 @@ def article_type_is_bad(id_str):
 	Checks id_str (ID, e.g. 'world/gallery/2013/aug/19/pipe-band-championship-2013-glasgow') for banned terms, such as 'gallery', 'video', etc.
 	Returns True if any banned terms found...
 	"""
-	check = id_str#[0:30]  # Take only first part of ID
+	import re
+	check = id_str
 	#TODO:make into regex
-	banned_terms = ['video', 'gallery', 'picture', 'interactive', 'commentisfree', 'blog', 'live', 'shortcuts']
-	# Check each banned term
-	for x in banned_terms:
-		if x in check:
-			return True
-	# If no banned terms found
+	match = re.search('(video|gallery|picture|interactive|commentisfree|blog|live|shortcuts)', check)
+	if match:
+		return True
 	else:
 		return False
 
@@ -128,7 +126,7 @@ def create_vector_from_article(article, include_standfirst=False):
 		return count_terms(headline+standfirst+tags)
 	 
 
-def create_cosine_similarity_pickle_all_articles(threshold=0.5, incremental_add=True):
+def create_cosine_similarity_pickle_all_articles(threshold=0.3, incremental_add=True, fb_share_minimum=10):
 	"""
 	Create cosine similarity matrix for all articles currently existing
 	Should only need to be run once (we can then add to it incrementally)
@@ -192,6 +190,16 @@ def create_cosine_similarity_pickle_all_articles(threshold=0.5, incremental_add=
 			print "Skipping article, already analysed"
 			continue
 
+		# Skip if Facebook share rate too low
+		fb_shares = articles[id1]['facebook']['snapshot_of_total']
+		try:
+			if int(fb_shares)<fb_share_minimum:
+				print "Skipping article, FB shares too low"
+				continue
+		except:
+			print "Skipping article, FB shares not crawled yet"
+			continue
+
 		# Skip if article is not of type we like
 		if article_type_is_bad(id1):
 			print "Skipping article, bad type"
@@ -212,8 +220,17 @@ def create_cosine_similarity_pickle_all_articles(threshold=0.5, incremental_add=
 
 		# Loop through all second articles
 		for id2 in articles:
+			# Skip if same article
 			if id1==id2:
 				continue
+			# Skip if low FB shares
+			fb_shares = articles[id2]['facebook']['snapshot_of_total']
+			try:
+				if int(fb_shares)<fb_share_minimum:
+					continue
+			except:			
+				continue
+			# Skip if bad article type
 			if article_type_is_bad(id2):
 				continue
 
@@ -487,7 +504,8 @@ def given_article_id_calculate_top_related(article_id, future_or_past, cosine_si
 def create_frozen_kmeans_lookup(articles,
 		cosine_similarity_matrix,
 		future_or_past,
-		number_of_days=90):
+		number_of_days=90,
+		incremental_add=True):
 	"""
 	If we don't want to calculate kmeans clusters at run-time, we can calculate in advance
 	This function carries this out
@@ -508,16 +526,22 @@ def create_frozen_kmeans_lookup(articles,
 	elif future_or_past == 'past_articles':
 		save_path = options.current_articles_path_frozen_kmeans_past
 	
-	# We will fill out this dictionary
-	frozen_kmeans = general_functions.load_pickle(save_path)
-	if frozen_kmeans==None:
-		print "WARNING: Creating new pickle - no file found at %s" %(save_path)
+	# We will fill out a dictionary
+	# If we aren't adding incrementally we start from afresh
+	if not incremental_add:
 		frozen_kmeans = {}
+		number_of_days = 9999
+		print "Incremental add is set to False. Creating a new pickle."
+	# If we want to add incrementally, we load the existing pickle (if exists)
+	else:
+		frozen_kmeans = general_functions.load_pickle(save_path)
+		if frozen_kmeans==None:
+			print "WARNING: Creating new pickle - no file found at %s" %(save_path)
+			frozen_kmeans = {}
 
 	# Counters, ids_to_calculate (only articles newer than a certain date)
 	counter = 0
-	ids_to_calculate = [id_ for id_ in cosine_similarity_matrix
-		if (datetime.datetime.today()-articles[id_]['date']).days < number_of_days]
+	ids_to_calculate = [id_ for id_ in cosine_similarity_matrix if (datetime.datetime.today()-articles[id_]['date']).days < number_of_days]	
 	total = len(ids_to_calculate)
 	print "We will calculate top K-means results for %s articles (i.e. those newer than %s days)" %(total, number_of_days)
 
@@ -689,23 +713,26 @@ def convert_vector_to_string(vector):
 
 # Create a NEW cosine similarity dictionary and save as pickle for ALL articles
 # WARNING: incremental_add=False means we start from a blank matrix
-if False:
-	create_cosine_similarity_pickle_all_articles(threshold=0.3, incremental_add=False)
+if True:
+	create_cosine_similarity_pickle_all_articles(threshold=0.3, incremental_add=False, fb_share_minimum=20)
 
 # Update the cosine similarity dictionary and save as pickle for incremental articles
 # incremental_add=True means we only add incremental articles
 if False:
-	create_cosine_similarity_pickle_all_articles(incremental_add=True)
+	create_cosine_similarity_pickle_all_articles(threshold=0.3, incremental_add=True, fb_share_minimum=20)
 
 # If we don't want to calculate the top K-means clusters at run-time, we can save the IDs beforehand by running this. Number of days to re-calculate should be 90 or above when calculating for 'future' articles, as we need to 'catch' new articles coming in within the historial articles' related lists.
-if False:
-	create_frozen_kmeans_lookup(articles=options.current_articles_path,
-		cosine_similarity_matrix=options.current_articles_path_cosine_similarites,
+# If incremental add is false, we recreate the whole matrix (with number of days set at 9999)
+if True:
+	create_frozen_kmeans_lookup(
+		articles=general_functions.load_pickle(options.current_articles_path),
+		cosine_similarity_matrix=general_functions.load_pickle(options.current_articles_path_cosine_similarites),
 		future_or_past='future_articles',
-		number_of_days=90)
+		number_of_days=1000,
+		incremental_add=False)
 
 # Create a smaller articles pickle, and python module, based on articles in cosine similarity dict, and only including relevant fields. Also create 
-if False:
+if True:
 	create_butterzip_files(use_scikit_learn=False)
 
 

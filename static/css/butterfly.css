@@ -113,3 +113,29 @@
 #starter_label {
   fill: blue;
 }
+
+#about_visualisation_modal {
+  background: white;
+  display: block;
+  position: fixed;
+  opacity: 1;
+  z-index: 101;
+  padding: 5%;
+  margin: 7%;
+  display: none;
+}
+#lean_overlay {
+  -webkit-filter: blur(50px);
+    -moz-filter: blur(50px);
+    -o-filter: blur(50px);
+    -ms-filter: blur(50px);
+    filter: blur(50px);
+    position: fixed;
+    z-index:100;
+    top: 0px;
+    left: 0px;
+    height:100%;
+    width:100%;
+    background: #000;
+    display: none;
+}

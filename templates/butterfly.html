@@ -24,10 +24,11 @@
       <![endif]-->
 
       <!--script src="//code.jquery.com/jquery-1.11.0.min.js"></script-->
-      <script src="{{url_for('static', filename = 'js/jquery-2.1.1.min.js')}}"></script>
-      <script src="{{url_for('static', filename = 'd3/d3.v3.js')}}"></script>
-      
-      <!-- See original script at http://bl.ocks.org/mbostock/1095795 -->
+      <script type="text/javascript" src="{{url_for('static', filename = 'js/jquery-2.1.1.min.js')}}"></script>
+      <script type="text/javascript" src="{{url_for('static', filename = 'd3/d3.v3.js')}}"></script>
+      <script type="text/javascript" src="{{url_for('static', filename = 'js/jquery.leanModal.min.js')}}"></script>
+
+
   </head>
 
 <body>
@@ -52,19 +53,35 @@
             </ul>
           </div>
         </div>
-      </div>
+      </div>  <!-- end navbar -->
 
     <div id='main_body_area' class='container-fluid'>
+      <div id="about_visualisation_modal">
+            <p>This visualisation scrapes data from <a href='http://www.theguardian.com' target="_blank">theguardian.com</a> website, and aims to show how one news article leads to many more in a 'butterfly effect' phenomenon.</p>
+
+            <p>The user can choose a seed news article, from which subsequent news articles 'sprout' off in different directions. These articles are related, but aim to show the story evolving in different directions. The user can keep on exploring the news in this way, expanding each story down different paths.</p>
+
+            <p>This visualisation was created using the <a href='http://www.d3js.org' target="_blank">D3.js</a> library, whilst the backend analysis of news articles is done in Python/Flask. On the backend, all World News articles from the past ~3 years have been scraped using The Guardian's API, and analysed for content. As a user selects an article, around 50 similar articles occuring in the future relative to this article are gathered (the similarity matrix is pre-calculated, and incrementally updated every day). To show the user which 'directions' the story takes, K-means clustering is applied to the 50 similar articles, splitting them into 2 or 3 clusters. Each cluster should be a slightly different 'direction' for the story to subsequently follow. One article from each of the clusters is shown to the user (currently based only on similarity score, though ideally the decision of which article to show should also be based on article popularity, timescale, pagerank, etc.). See <a href='#' target='_blank'>this blog entry</a> for more detail.</p>            
+        </div>
 
       <div id='guardian_search_div'>
       <!-- Div shown initially showing user guardian search interface -->
         <div class='col-sm-6'>
-          <h2>We start the visualisation with one 'seed' article.</h2>
-          <p>Search the Guardian for this first article.</p>
-
+          <h2>We start the visualisation with one 'seed' article from The Guardian.</h2>
+          <p>Search by keyword:</p>
           <input type="text" id='guardian_search_terms_input'>
+          
+          <br><br>
+          <p>Start date for search:</p>
+          <input type='date' id='startdate'>
+
+          <br><br>
+          <p>End date for search:</p>
+          <input type='date' id='enddate'>
+
+          <br><br>
           <button id='guardian_search_terms_submit'>Search</button>
-          <i><br>NB: articles from early 2013 only.</i>
+
         </div>
         <div id='results_div' class='col-sm-6 initially_hidden'>
             <h2>Click on an article to start:</h2>
@@ -98,5 +115,14 @@
 </body>
 <script src="{{url_for('static', filename = 'js/butterfly_graph.js')}}"></script>
 <script src="{{url_for('static', filename = 'js/butterfly_seed.js')}}"></script>
+<script>
+$(document).ready(function() {
+          // Prepare 'about' modal
+          $('#about_link').leanModal()
+          $('#about_link').click( function() {
+            $('#about_visualisation_modal').fadeIn()
+          })
+      });
+</script>
 
 

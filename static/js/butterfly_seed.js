@@ -1,6 +1,7 @@
 // Script dealing with the 'setup' for the visualisation
 // Finding guardian articles, selecting a seed
 
+
 // Submit guardian search when submit button pressed
 $('#guardian_search_terms_submit').click( function(e) {
 	e.preventDefault();
@@ -117,10 +118,6 @@ function make_seed_articles_clickable() {
           alert("Serverside error")
         } // end success callback
       }); // end ajax
-
-
-		
-
 
 
 	})
