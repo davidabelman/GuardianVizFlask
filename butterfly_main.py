@@ -280,7 +280,7 @@ def create_cosine_similarity_pickle_all_articles(threshold=0.5, incremental_add=
 
 ###### CREATING THE BUTTERZIP FILES #########
 # These are modules containing all article and cosine_matrix information in reasonably compressed form...
-def create_butterzip_files():
+def create_butterzip_files(use_scikit_learn=False):
 	""""
 	1) Creates articles_butterzip.p and articles_butterzip.py:
 		... these only contain articles in the cosine_similarity_matrix
@@ -303,14 +303,22 @@ def create_butterzip_files():
 	# 1) Create new articles (articles_butterzip)
 	articles_butterzip = {}
 	for id_ in cosine_similarity_matrix:
-		article_barebones = {
-			'headline':articles[id_]['headline'],
-			'standfirst':articles[id_]['standfirst'],
-			'date':articles[id_]['date'],
-			'thumbnail':articles[id_]['thumbnail'],
-			'tags':articles[id_]['tags'],
-			'f':frozen_kmeans_future[id_]  # frozen kmeans - also add past articles on another line here under 'p' key (TODO)
-		}
+		if use_scikit_learn:
+			article_barebones = {
+				'headline':articles[id_]['headline'],
+				'standfirst':articles[id_]['standfirst'],
+				'date':articles[id_]['date'],
+				'thumbnail':articles[id_]['thumbnail'],
+				'tags':articles[id_]['tags'],
+			}
+		else: 
+			article_barebones = {
+				'headline':articles[id_]['headline'],
+				'standfirst':articles[id_]['standfirst'],
+				'date':articles[id_]['date'],
+				'thumbnail':articles[id_]['thumbnail'],
+				'f':frozen_kmeans_future[id_]  # frozen kmeans - also add past articles on another line here under 'p' key (TODO)
+			}
 		articles_butterzip[id_] = article_barebones
 	# Save this as a pickle and a file
 	general_functions.save_pickle(
@@ -698,7 +706,7 @@ if False:
 
 # Create a smaller articles pickle, and python module, based on articles in cosine similarity dict, and only including relevant fields. Also create 
 if False:
-	create_butterzip_files()
+	create_butterzip_files(use_scikit_learn=False)
 
 
 """
