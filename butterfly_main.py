@@ -3,16 +3,28 @@
 Butterfly effect visualisation
 ==============================
 
-Notes:
-1) Similarity value found between all pairs of articles based on tag, headline, and strapline. These are found by cosine similarity, and pairwise values are stored [TODO: either in a sparse matrix form, if we can store this within Flask, or in a database if we have to...]. We only need to store values if they are above a certain threshold. These are all calculated on a one off basis at first, and as new articles are crawled, we need to calculate pairwise similarity with all existing articles and store these values. Note that for each value stored, we need to store it either within 'future_articles' or 'past_articles'.
+Usage:
+>>> python butterfly_main [incremental|fresh]
+- 'incremental' argument will add any incremental articles to the cosine similarity matrix, and recalculate any k-means clustering for the last 180 days. If we are running this regularly we can just run on incremental mode, which will take the latest pulled articles from the Guardian and add the relevant info to our butterzip data
+- 'fresh' argument will completely calculate all cosine similarities and k-means clustering from afresh. We can run this whenever we like - it may just take a while!
+Files are written to output which will be used by the heroku/flask app. The main one of these outputs is called 'articles_butterzip.py'.
 
-1b) Once similarity matrix created as a pickle, along with article matrix, we can run a function to reduce the size of these:
-	--> articles pickle turned to articles_butterzip pickle (only stores the relevant information in the file), and saved as a python module
-	--> cosine_sim_matrix turned to cosine_sim_matrix_butterzip pickle (uses lookup codes instead of ID), and then saved as python module
+Notes on methodology:
+1) Similarity value found between all pairs of articles based on tag, headline, and strapline. These are found by cosine similarity, and pairwise values are stored in sparse format (any values below threshold ignored). Note we also disregard certain types of article, and those with low number of FB shares. We only need to store values if they are above a certain threshold. These are all calculated on a one off basis at first, and as new articles are crawled, we need to calculate pairwise similarity with all existing articles and store these values (i.e. run with incremental_add=True). Note that for each value stored, we need to store it either within 'future_articles' or 'past_articles'.	
 
-2) For all similar articles (say 20 of them) we run some type of clustering [TODO: topic analysis, LDA, or K-means] and form 2 or 3 topics of similar articles. Number of topics may depend on how many similar articles there are.
+2) For all similar articles (say 50 of them) we run K-means and form 2 or 3 topics of similar articles. Number of topics may depend on how many similar articles there are. We then pick out the most relevant article from each group (currently just done by maximal cosine similarity, though could use pagerank or facebook shares or date, etc.). This process can be done live (i.e. given list of similar articles, do the k-means clustering on web server) though due to issues with sklearn on Heroku, currently we run with use_sklearn=False, so these values are all also precalculated and stored to be looked up at runtime. This does make things faster too at runtime. The disadvantage is that we have to recalculate the k-means clustering frequently, as older articles need to link to newer articles. Thus we can't add incrementally - we have to go back 90+ days to recalculate k-means clustering on all the new to medium aged articles.
 
-3) For each topic we want to select the most relevant article to display to the user. This should be based on its PageRank, its Facebook shares, and its date. Details to be decided...
+3) We use this data on the Flask app by loading a Python module containing the correct dictionaries etc. We don't use a database as this is just a proof of concept, though that would be preferable! Everything can only fit in memory if we do some compressing, called 'butterzip' for the purposes of this project. 
+	--> articles pickle turned to articles_butterzip pickle (only stores the relevant information in the file, as well as k-means clustering results), and saved as a python module
+	--> cosine_sim_matrix turned to cosine_sim_matrix_butterzip pickle (also uses lookup codes instead of ID), and then saved as python module. Note that this isn't used at runtime if we're doing the use_sklearn=False method, as we already have the k-means results within the articles_butterzip, so no need to recalculate using lists of similar articles. However, they are saved within the butterzip calculation just for completeness.
+
+
+TODO:
+- Use TFIDF instead of cosine similarity?
+- Use LDA instead of K-means?
+- Should pick best article from k-means cluster based on more than just cosine similarity
+	(i.e. pagerank, facebook popularity, etc.)
+
 """
 
 import time
@@ -711,72 +723,37 @@ def convert_vector_to_string(vector):
 	return output_string
 
 
-# Create a NEW cosine similarity dictionary and save as pickle for ALL articles
-# WARNING: incremental_add=False means we start from a blank matrix
-if True:
-	create_cosine_similarity_pickle_all_articles(threshold=0.3, incremental_add=False, fb_share_minimum=20)
 
-# Update the cosine similarity dictionary and save as pickle for incremental articles
-# incremental_add=True means we only add incremental articles
-if False:
-	create_cosine_similarity_pickle_all_articles(threshold=0.3, incremental_add=True, fb_share_minimum=20)
+if __name__ == '__main__':
+	assert len(sys.argv)==2, 'Usage: butterfly_main.py [fresh|incremental]'
+	assert sys.argv[1]=='fresh' or sys.argv[1]=='incremental', 'Usage: butterfly_main.py [fresh|incremental]'
 
-# If we don't want to calculate the top K-means clusters at run-time, we can save the IDs beforehand by running this. Number of days to re-calculate should be 90 or above when calculating for 'future' articles, as we need to 'catch' new articles coming in within the historial articles' related lists.
-# If incremental add is false, we recreate the whole matrix (with number of days set at 9999)
-if True:
-	create_frozen_kmeans_lookup(
-		articles=general_functions.load_pickle(options.current_articles_path),
-		cosine_similarity_matrix=general_functions.load_pickle(options.current_articles_path_cosine_similarites),
-		future_or_past='future_articles',
-		number_of_days=1000,
-		incremental_add=False)
+	if sys.argv[1]=='fresh':
+		incremental_add = False
+	else:
+		incremental_add = True
 
-# Create a smaller articles pickle, and python module, based on articles in cosine similarity dict, and only including relevant fields. Also create 
-if True:
-	create_butterzip_files(use_scikit_learn=False)
+	# Depending on status of incremental_add:
+	# If False: Create a NEW cosine similarity dictionary and save as pickle for ALL articles
+	# If True: Update the cosine similarity dictionary and save as pickle for incremental articles
+	# Filter out articles with less than X facebook shares
+	# Only save cosine similarities above Y threshold value
+	if True:
+		print "COSINE SIMILARITY CALCULATIONS:"
+		create_cosine_similarity_pickle_all_articles(threshold=0.3, incremental_add=incremental_add, fb_share_minimum=20)
 
+	# If we don't want to calculate the top K-means clusters at run-time, we can save the IDs beforehand by running this. Number of days to re-calculate should be 90 or above when calculating for 'future' articles, as we need to 'catch' new articles coming in within the historial articles' related lists.
+	# If incremental add is false, we recreate the whole matrix (with number of days set at 9999)
+	if True:
+		print "KMEANS CLUSTERING CALCULATIONS:"
+		create_frozen_kmeans_lookup(
+			articles=general_functions.load_pickle(options.current_articles_path),
+			cosine_similarity_matrix=general_functions.load_pickle(options.current_articles_path_cosine_similarites),
+			future_or_past='future_articles',
+			number_of_days=180,
+			incremental_add=incremental_add)
 
-"""
-Notes
-TO DOs:
-- Write documentation properly on how to use web app and how to create articles, butterzip, etc. files
-- Upload to Heroku and sort out scikit learn
----> TRIED, FAILED. Should store all of K-means results within a python file to just look up at runtime. We can update this file at the same time as we add new articles to the similarlity matrix. Basically, as we get new articles, we should redo the K-means for all articles less than 90 days old. Longer than that we shouldn't do regularly, only occasionally...
-Also when creating the articles/cosine/etc zips (or before then), somehow filter out some articles (for example, all those below a threshold of FB likes) as we are having memory problems loading them into Heroku on 1 dyno.
-- Add date filter to starting screen
-- Remake the cosine similarity with updated paratmeters, and run butterzip etc. on it
-- Load articles post August 2014 from Guardian...
-- Investigate if better to use TFIDF than cosine similarity (probably, but not worth changing...)
-- Write a blog post
-
-
-When app starts:
-- choose an example story
-- or search by tag (could use guardian api or google for search if not by tag?)
-- or paste in guardian URL
-Create search function when app starts
-2 ways: 1 using pickle for testing, but real way will probably be search database by tag 
-Or enter guardian URL (and will check if it exists)
-
-Setup
-=====
-Database:
--- when searching guardian and seeing if we have article, needs to do 20 or so(?) calls to database to see if each article is in it
--- 
-Python modules
--- convert pickles into python modules to load within heroku
--- we can reduce size of articles just by using format {'id':{'headline':'blah', 'standfirst':'blah blah', 'thumbnail':'url'}} and only including articles for which we have cosine data
--- we can reduce size of cosine matrix by using lookup codes instead of full ids
-
-Butterfly expansion
-===============
-investigate - should i be using tfidf instead of cosine similarity??
-redo - 0.4ish for threshold
-redo - Filter out anything saying 'live' in ID - regex
-Only work with subset for a while to iron out mistakes
-done - For kmeans only consider articles between 1-90 days UNLESS there are not enough (say 10) in which case take the 10 youngest articles 
-maybe add this if needed - If over 20 articles, take the 20 highest cosine similarities for kmeans
-Once clusters found, pick highest from each cluster as before 
--- (extension would be to take best pagerank/FB from top 3 cosine-similarities within each cluster, but don't bother)
-
-"""
+	# Create a smaller articles pickle, and python module, based on articles in cosine similarity dict, and only including relevant fields. Also create 
+	if True:
+		print "COMPRESSING FILES (BUTTERZIP) FOR USE ON HEROKU"
+		create_butterzip_files(use_scikit_learn=False)

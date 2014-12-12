@@ -6,8 +6,10 @@ import general_functions
 print "Importing articles..."
 from articles_butterzip import articles
 
-use_scikit_learn = False
+use_scikit_learn = True
 if use_scikit_learn:
+	# If we want to use scikit learn (i.e. we have loaded it on Heroku)
+	# then we can calculate K-means scores on the fly, without creating frozen top scores
 	from butterfly_main import given_article_id_calculate_top_related
 	print "Importing cosine similarity matrix..."
 	from cosine_similarity_matrix_butterzip import cosine_similarity_matrix
