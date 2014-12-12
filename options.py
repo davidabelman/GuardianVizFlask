@@ -11,8 +11,10 @@ path_choice = {
 	'uk_1_wk' : "../open/data/articles_uk_1_wk.p",
 	'sample' : "../open/data/articles_subset.p",
 }
-current_articles_path = path_choice [ 'all' ]
+current_articles_path = path_choice [ 'uk' ]
 current_articles_path_cosine_similarites = current_articles_path[0:-2]+'_cosine_similarities.p'
+current_articles_path_frozen_kmeans_future = current_articles_path[0:-2]+'_frozen_kmeans_future.p'
+current_articles_path_frozen_kmeans_past = current_articles_path[0:-2]+'_frozen_kmeans_past.p'
 current_articles_path_butterzip = current_articles_path[0:-2]+'_butterzip.p'
 
 # Datetime for crawl

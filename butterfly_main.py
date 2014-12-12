@@ -27,7 +27,7 @@ reload(options)
 import datetime
 import general_functions
 stopwords = general_functions.create_stopword_list(extra_words = options.tfidf_extra_stopwords)
-debug = True
+debug = False
 
 
 ###### CREATING THE COSINE DICTIONARY #########
@@ -285,13 +285,20 @@ def create_butterzip_files():
 	1) Creates articles_butterzip.p and articles_butterzip.py:
 		... these only contain articles in the cosine_similarity_matrix
 		... these only contain fields used in the butterfly viz (id, headline, strapline, image, date) 
-	2) Creates cosine_similarity_matrix_butterzip, which is a copy of cosine_similarity_matrix but uses simpler IDs (from lookup). Also need to create the lookup both ways for this.
+		... these also contain frozen k-means results so we don't have to calculate live (TODO: only future articles included for now to save on memory)
+
+	2) Creates cosine_similarity_matrix_butterzip.py, which is a copy of cosine_similarity_matrix but uses simpler IDs (from lookup). Also need to create the lookup both ways for this.
+
+
 	"""
+
 	print "Creating butterzip files..."
 
 	# Load main articles and cosine similarites pickles created previously
 	articles = general_functions.load_pickle(filename = options.current_articles_path)
 	cosine_similarity_matrix = general_functions.load_pickle(filename = options.current_articles_path_cosine_similarites)
+	frozen_kmeans_future = general_functions.load_pickle(filename = options.current_articles_path_frozen_kmeans_future)
+	frozen_kmeans_past = general_functions.load_pickle(filename = options.current_articles_path_frozen_kmeans_past)
 
 	# 1) Create new articles (articles_butterzip)
 	articles_butterzip = {}
@@ -301,7 +308,8 @@ def create_butterzip_files():
 			'standfirst':articles[id_]['standfirst'],
 			'date':articles[id_]['date'],
 			'thumbnail':articles[id_]['thumbnail'],
-			'tags':articles[id_]['tags']
+			'tags':articles[id_]['tags'],
+			'f':frozen_kmeans_future[id_]  # frozen kmeans - also add past articles on another line here under 'p' key (TODO)
 		}
 		articles_butterzip[id_] = article_barebones
 	# Save this as a pickle and a file
@@ -357,6 +365,7 @@ def create_butterzip_files():
 		variable_name = 'cosine_similarity_matrix',
 		filename = '../flask/cosine_similarity_matrix_butterzip.py')
 
+	
 
 ###### SELECTING TOP RELATED ARTICLES #########
 """
@@ -383,7 +392,7 @@ def play_with_related_articles(a=None, m=None):
 	future_or_past = future_or_past[0].lower().strip()
 	t = {'f':'future_articles', 'p':'past_articles'}[future_or_past]
 	while True:
-		id_out = given_article_id_get_top_related(id_, t, m, a)
+		id_out = given_article_id_calculate_top_related(id_, t, m, a)
 		print chr(27) + "[2J"
 		if not id_out:
 			print "NO MORE ARTICLES!"
@@ -415,7 +424,7 @@ def play_with_related_articles(a=None, m=None):
 		id_ = id_out[number]
 
 
-def given_article_id_get_top_related(article_id, future_or_past, cosine_similarity_matrix, articles, countid_to_guardianid):
+def given_article_id_calculate_top_related(article_id, future_or_past, cosine_similarity_matrix, articles, countid_to_guardianid=None):
 	"""
 	Given an article ID (e.g. 'world/2013/aug/19/...') and either 'past_articles' or 'future_articles'
 	Look up article in cosine_similarity matrix to find related IDs in past or future
@@ -428,10 +437,14 @@ def given_article_id_get_top_related(article_id, future_or_past, cosine_similari
 	# {43: 59, 901: 54,}   
 	related_articles_and_scores = cosine_similarity_matrix[article_id][future_or_past]
 
-	# Related article IDs in the form:
-	# {u'world/2012/dec/27/central-african-republic-rebels-capital': 59, u'world/2012/dec/28/central-african-republis-us-embassy': 54,}  
-	# i.e. convert the counterid to a guardianid
-	related_articles_and_scores = dict( [ (countid_to_guardianid[key], related_articles_and_scores[key]) for key in related_articles_and_scores] )
+	# If we supply a lookup here, we need to lookup non-abbreviated keys.
+	# If not, we don't use the lookup, keep related_articles_and_scores as it is
+	if countid_to_guardianid:
+		# Related article IDs in the form:
+		# {u'world/2012/dec/27/central-african-republic-rebels-capital': 59, u'world/2012/dec/28/central-african-republis-us-embassy': 54,}  
+		# i.e. convert the counterid to a guardianid
+
+		related_articles_and_scores = dict( [ (countid_to_guardianid[key], related_articles_and_scores[key]) for key in related_articles_and_scores] )	
 
 	# If we don't have many articles, just return the articles we have
 	if len(related_articles_and_scores)<=3:
@@ -461,6 +474,66 @@ def given_article_id_get_top_related(article_id, future_or_past, cosine_similari
 	
 	# Return list of IDs
 	return output
+
+
+def create_frozen_kmeans_lookup(articles,
+		cosine_similarity_matrix,
+		future_or_past,
+		number_of_days=90):
+	"""
+	If we don't want to calculate kmeans clusters at run-time, we can calculate in advance
+	This function carries this out
+	For each article in cosine_similarity_matrix we calculate the top 2 or 3 articles to show via k-means
+	We save everything to a pickle (which can later be 'butterzipped')
+	Format is like this, i.e. each article in cosine_sim_matrix is a key with related articles as list:
+	{
+		'world/2014/nov...': ['world/2015/jan/...', 'world/2014/dec/...'],
+		'world/2014/oct...': ['world/2015/feb/...', 'world/2014/dec/...'],
+	}
+	We can select the number of days to go back. We should always go back 90 (atleast 90!) so that older articles can 'find' any newer articles we have added in the 90 days after it.
+	"""
+	# Ensure argument correct
+	assert future_or_past=='future_articles' or future_or_past=='past_articles', 'future_or_past variable must be "future_articles" or "past_articles"'
+	# Path at which we will save/load pickle:
+	if future_or_past == 'future_articles':
+		save_path = options.current_articles_path_frozen_kmeans_future
+	elif future_or_past == 'past_articles':
+		save_path = options.current_articles_path_frozen_kmeans_past
+	
+	# We will fill out this dictionary
+	frozen_kmeans = general_functions.load_pickle(save_path)
+	if frozen_kmeans==None:
+		print "WARNING: Creating new pickle - no file found at %s" %(save_path)
+		frozen_kmeans = {}
+
+	# Counters, ids_to_calculate (only articles newer than a certain date)
+	counter = 0
+	ids_to_calculate = [id_ for id_ in cosine_similarity_matrix
+		if (datetime.datetime.today()-articles[id_]['date']).days < number_of_days]
+	total = len(ids_to_calculate)
+	print "We will calculate top K-means results for %s articles (i.e. those newer than %s days)" %(total, number_of_days)
+
+
+	# Loop through all articles in cosine_similarity_matrix
+	for article_id in ids_to_calculate:
+		counter +=1
+		# Find top ID for each cluster via K-means functionality
+		ids = given_article_id_calculate_top_related(
+			article_id=article_id,
+			future_or_past=future_or_past,
+			cosine_similarity_matrix=cosine_similarity_matrix,
+			articles=articles)
+		# Save these to our data structure
+		frozen_kmeans[article_id] = ids
+		print "Saved %s/%s [%s]" %(counter, total, article_id)
+
+		if counter%100==0:
+			general_functions.save_pickle(data = frozen_kmeans,
+				filename = save_path)
+
+	general_functions.save_pickle(data = frozen_kmeans,
+				filename = save_path)
+
 
 
 def create_mini_article_set(
@@ -592,6 +665,7 @@ def articles_to_tfidf(articles):
 
 	return ids, strings, sparse_matrix
 
+
 def convert_vector_to_string(vector):
 	"""
 	Given Counter (i.e. dict) of terms
@@ -615,7 +689,14 @@ if False:
 if False:
 	create_cosine_similarity_pickle_all_articles(incremental_add=True)
 
-# Create a smaller articles pickle, and python module, based on articles in cosine similarity dict, and only including relevant fields
+# If we don't want to calculate the top K-means clusters at run-time, we can save the IDs beforehand by running this. Number of days to re-calculate should be 90 or above when calculating for 'future' articles, as we need to 'catch' new articles coming in within the historial articles' related lists.
+if False:
+	create_frozen_kmeans_lookup(articles=options.current_articles_path,
+		cosine_similarity_matrix=options.current_articles_path_cosine_similarites,
+		future_or_past='future_articles',
+		number_of_days=90)
+
+# Create a smaller articles pickle, and python module, based on articles in cosine similarity dict, and only including relevant fields. Also create 
 if False:
 	create_butterzip_files()
 
@@ -625,6 +706,8 @@ Notes
 TO DOs:
 - Write documentation properly on how to use web app and how to create articles, butterzip, etc. files
 - Upload to Heroku and sort out scikit learn
+---> TRIED, FAILED. Should store all of K-means results within a python file to just look up at runtime. We can update this file at the same time as we add new articles to the similarlity matrix. Basically, as we get new articles, we should redo the K-means for all articles less than 90 days old. Longer than that we shouldn't do regularly, only occasionally...
+Also when creating the articles/cosine/etc zips (or before then), somehow filter out some articles (for example, all those below a threshold of FB likes) as we are having memory problems loading them into Heroku on 1 dyno.
 - Add date filter to starting screen
 - Remake the cosine similarity with updated paratmeters, and run butterzip etc. on it
 - Load articles post August 2014 from Guardian...

@@ -1,16 +1,18 @@
 from flask import Flask, render_template, request
-# from butterfly_main import given_article_id_get_top_related
 import json
-# import general_functions
 import datetime
-use_pickles_or_database = 'pickles'
+import general_functions
+
 print "Importing articles..."
 from articles_butterzip import articles
-print "Importing cosine similarity matrix..."
-from cosine_similarity_matrix_butterzip import cosine_similarity_matrix
-print "Importing lookups"
-from countid_to_guardianid import countid_to_guardianid
 
+use_scikit_learn = False
+if use_scikit_learn:
+	from butterfly_main import given_article_id_calculate_top_related
+	print "Importing cosine similarity matrix..."
+	from cosine_similarity_matrix_butterzip import cosine_similarity_matrix
+	print "Importing lookups"
+	from countid_to_guardianid import countid_to_guardianid
 
 app = Flask(__name__)
 app.debug = True
@@ -54,21 +56,28 @@ def butterfly_get_related_articles():
 	print "Received %s (for future_or_past) from AJAX..." %future_or_past
 
 	# Get related article IDs
-	# (Can use either scikit learn and pickle, or look up in nosql database)
-	if use_pickles_or_database == 'pickles':
-		ids = given_article_id_get_top_related(
+	# (Can use either scikit learn to calculate live, or look up in our articles data structure)
+	if use_scikit_learn:
+		ids = given_article_id_calculate_top_related(
 			article_id=article_id,
 			future_or_past=future_or_past,
 			cosine_similarity_matrix=cosine_similarity_matrix,
 			articles=articles,
-			countid_to_guardianid=countid_to_guardianid)
-		# Get list of the date differences from the original article clicked on		
-		date_differences = [str((articles[id_]['date']-articles[article_id]['date']).days)+' days later' for id_ in ids]
-		# So we have IDs and their date differences: [(world/2014/.., 4 days), (world/2013/.., 12 days)...]
-		ids_and_dates = zip(ids, date_differences)
+			countid_to_guardianid=countid_to_guardianid)		
+	else:
+		# Just look up the frozen values for top kmeans picks, saved in articles file
+		ids = articles[article_id][future_or_past[0]]  # i.e. ['f'] or ['p']
 
-	elif use_pickles_or_database == 'database':
-		return ['TODO database functionality']
+	# Get list of the date differences from the original article clicked on		
+	if future_or_past=='f':
+		earlier_or_later = 'later'
+	elif future_or_past=='p':
+		earlier_or_later = 'earlier'
+	else:
+		print "Unrecognised future_or_past argument (%s)" %future_or_past
+	date_differences = [str((articles[id_]['date']-articles[article_id]['date']).days)+' days ' + earlier_or_later for id_ in ids]
+	# So we have IDs and their date differences: [(world/2014/.., 4 days), (world/2013/.., 12 days)...]
+	ids_and_dates = zip(ids, date_differences)
 
 	if len(ids)==0:
 		print "No articles found, sending back status -1"
@@ -108,7 +117,7 @@ def butterfly_search_guardian():
 	Given search query (TODO and a date range)
 	Return data from The Guardian search api
 	"""
-	testing = False
+	testing = True
 	if testing:
 		data = {'status': '1', 'data': [{'headline': u'David Cameron to attend Bilderberg group meeting', 'date': u'2013-06-07T11:38:45Z', 'id': u'world/2013/jun/07/david-cameron-attend-bilderberg-group'}, {'headline': u'David Cameron and Europe at odds over benefit tourism issue', 'date': u'2013-10-14T23:03:00Z', 'id': u'world/2013/oct/15/david-cameron-europe-benefit-tourism'}, {'headline': u"Tamils hail David Cameron as 'god' but Sri Lankan president is not a believer", 'date': u'2013-11-15T22:12:00Z', 'id': u'world/2013/nov/15/david-cameron-visits-tamils-sri-lanka'}, {'headline': u'Sri Lanka: Cameron pushes for international war crimes inquiry', 'date': u'2013-11-16T10:47:09Z', 'id': u'world/2013/nov/16/sri-lanka-cameron-international-war-crimes-inquiry'}, {'headline': u'Sri Lanka defiant after Cameron calls for war crimes investigation', 'date': u'2013-11-17T00:00:00Z', 'id': u'world/2013/nov/16/sri-lanka-david-cameron-war-crime-allegations'}, {'headline': u'UK would welcome Chinese investment in HS2, says David Cameron', 'date': u'2013-12-03T09:47:31Z', 'id': u'world/2013/dec/03/uk-chinese-investment-hs2-david-cameron'}, {'headline': u'David Cameron: Mandela service offers world leaders chance for diplomacy', 'date': u'2013-12-10T09:35:12Z', 'id': u'world/2013/dec/10/david-cameron-mandela-service-diplomacy'}, {'headline': u'David Cameron shares bunk bed with Michael Owen on way to Afghanistan', 'date': u'2013-12-16T13:47:00Z', 'id': u'world/2013/dec/16/david-cameron-michael-owen-football-afghanistan'}, {'headline': u'David Cameron to challenge EU over surveillance drone programme plans', 'date': u'2013-12-19T00:01:17Z', 'id': u'world/2013/dec/19/david-cameron-eu-surveillance-drone-nato-security-europe'}, {'headline': u"Doctor's body repatriated as PM says Syrian regime 'must answer' for death", 'date': u'2013-12-22T19:26:26Z', 'id': u'world/2013/dec/22/british-doctor-abbas-khan-syria-cameron'}]}
 		return json.dumps(data)
