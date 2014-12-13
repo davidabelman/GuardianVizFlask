@@ -741,7 +741,7 @@ if __name__ == '__main__':
 	# Only save cosine similarities above Y threshold value
 	if True:
 		print "COSINE SIMILARITY CALCULATIONS:"
-		create_cosine_similarity_pickle_all_articles(threshold=0.3, incremental_add=incremental_add, fb_share_minimum=20)
+		create_cosine_similarity_pickle_all_articles(threshold=0.4, incremental_add=incremental_add, fb_share_minimum=20)
 
 	# If we don't want to calculate the top K-means clusters at run-time, we can save the IDs beforehand by running this. Number of days to re-calculate should be 90 or above when calculating for 'future' articles, as we need to 'catch' new articles coming in within the historial articles' related lists.
 	# If incremental add is false, we recreate the whole matrix (with number of days set at 9999)
@@ -751,7 +751,7 @@ if __name__ == '__main__':
 			articles=general_functions.load_pickle(options.current_articles_path),
 			cosine_similarity_matrix=general_functions.load_pickle(options.current_articles_path_cosine_similarites),
 			future_or_past='future_articles',
-			number_of_days=180,
+			number_of_days=1800,
 			incremental_add=incremental_add)
 
 	# Create a smaller articles pickle, and python module, based on articles in cosine similarity dict, and only including relevant fields. Also create 
