@@ -142,7 +142,7 @@ def print_current_status():
 
 def search_guardian_by_query(
 		query,
-		cosine_similarity_matrix,
+		articles,
 		pickle_or_database = 'pickle',
 		start_date='2012-01-01',
 		end_date='2015-01-01',
@@ -151,9 +151,8 @@ def search_guardian_by_query(
 		return_number=10):
 	"""
 	Given query, a start date string, an end date string, a section (i.e. 'world')
-	Also given articles dict of all cosine_similarities (to check if we have each result saved)
-	  e.g. load_pickle('../open/data/articles_cosine_similarities.p')
-	TODO: will need to add in database functionality
+	Also given articles dict of all articles (to check if we have each result saved)
+	  e.g. load_pickle('../open/data/articles.p')
 	Returns list of articles (and their headlines, etc.) for which we have data saved
 	Format is:
 	[{'date': u'2014-02-13T18:47:52Z',
@@ -202,10 +201,10 @@ def search_guardian_by_query(
 	# Check if each article is in articles pickle / in database (TODO: currently pickle)
 	if pickle_or_database == 'pickle':
 		filtered_article_set = [x for x in article_set 
-								# Only show if in cosine_sim_matrix
-								if x['id'] in cosine_similarity_matrix
+								# Only show if in articles file
+								if x['id'] in articles
 								# Only show if 2+ articles in future_articles list
-								if len(cosine_similarity_matrix[x['id']]['f'])>=2]		
+								if len(articles[x['id']]['f'])>=2]		
 	elif pickle_or_database == 'database':
 		# TODO
 		None

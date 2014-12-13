@@ -1,3 +1,11 @@
+"""
+Main web app.
+Loads index page first.
+Then user can select other pages.
+AJAX calls also stored here.
+Can turn scikit_learn on or off (currently off)
+"""
+
 from flask import Flask, render_template, request
 import json
 import datetime
@@ -6,10 +14,11 @@ import general_functions
 print "Importing articles..."
 from articles_butterzip import articles
 
-use_scikit_learn = True
+use_scikit_learn = False
 if use_scikit_learn:
 	# If we want to use scikit learn (i.e. we have loaded it on Heroku)
 	# then we can calculate K-means scores on the fly, without creating frozen top scores
+	print "WARNING: use_scikit_learn=True. This won't work on Heroku until buildpack working..."
 	from butterfly_main import given_article_id_calculate_top_related
 	print "Importing cosine similarity matrix..."
 	from cosine_similarity_matrix_butterzip import cosine_similarity_matrix
@@ -120,22 +129,22 @@ def butterfly_search_guardian():
 	Given search query (TODO and a date range)
 	Return data from The Guardian search api
 	"""
-	testing = True
+	testing = False
 	if testing:
 		data = {'status': '1', 'data': [{'headline': u'David Cameron to attend Bilderberg group meeting', 'date': u'2013-06-07T11:38:45Z', 'id': u'world/2013/jun/07/david-cameron-attend-bilderberg-group'}, {'headline': u'David Cameron and Europe at odds over benefit tourism issue', 'date': u'2013-10-14T23:03:00Z', 'id': u'world/2013/oct/15/david-cameron-europe-benefit-tourism'}, {'headline': u"Tamils hail David Cameron as 'god' but Sri Lankan president is not a believer", 'date': u'2013-11-15T22:12:00Z', 'id': u'world/2013/nov/15/david-cameron-visits-tamils-sri-lanka'}, {'headline': u'Sri Lanka: Cameron pushes for international war crimes inquiry', 'date': u'2013-11-16T10:47:09Z', 'id': u'world/2013/nov/16/sri-lanka-cameron-international-war-crimes-inquiry'}, {'headline': u'Sri Lanka defiant after Cameron calls for war crimes investigation', 'date': u'2013-11-17T00:00:00Z', 'id': u'world/2013/nov/16/sri-lanka-david-cameron-war-crime-allegations'}, {'headline': u'UK would welcome Chinese investment in HS2, says David Cameron', 'date': u'2013-12-03T09:47:31Z', 'id': u'world/2013/dec/03/uk-chinese-investment-hs2-david-cameron'}, {'headline': u'David Cameron: Mandela service offers world leaders chance for diplomacy', 'date': u'2013-12-10T09:35:12Z', 'id': u'world/2013/dec/10/david-cameron-mandela-service-diplomacy'}, {'headline': u'David Cameron shares bunk bed with Michael Owen on way to Afghanistan', 'date': u'2013-12-16T13:47:00Z', 'id': u'world/2013/dec/16/david-cameron-michael-owen-football-afghanistan'}, {'headline': u'David Cameron to challenge EU over surveillance drone programme plans', 'date': u'2013-12-19T00:01:17Z', 'id': u'world/2013/dec/19/david-cameron-eu-surveillance-drone-nato-security-europe'}, {'headline': u"Doctor's body repatriated as PM says Syrian regime 'must answer' for death", 'date': u'2013-12-22T19:26:26Z', 'id': u'world/2013/dec/22/british-doctor-abbas-khan-syria-cameron'}]}
 		return json.dumps(data)
 
 	# Get search query by AJAX
 	query = request.json['query']
-	# start_date = request.json['start_date']
-	# end_date = request.json['end_date']
+	start_date = request.json['start_date']
+	end_date = request.json['end_date']
 
 	results = general_functions.search_guardian_by_query(
 		query=query,
-		cosine_similarity_matrix=cosine_similarity_matrix,
+		articles=articles,
 		pickle_or_database = 'pickle',
-		start_date='2013-01-01',
-		end_date='2013-12-30',
+		start_date=start_date,
+		end_date=end_date,
 		section='world',
 		guardian_page_size=100,
 		return_number=10

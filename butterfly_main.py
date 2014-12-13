@@ -167,7 +167,8 @@ def create_cosine_similarity_pickle_all_articles(threshold=0.3, incremental_add=
 		print "We will use *%s* as the article set." %options.current_articles_path
 		print "If not, set incremental_add to True: this will only calculate new cosine pairs."
 		print "Press 'y' to continue..."
-		u = raw_input('>> ')
+		# u = raw_input('>> ')
+		u = 'y'
 		if u!='y':
 			print "** CANCELLED **"
 			return None
@@ -528,7 +529,7 @@ def create_frozen_kmeans_lookup(articles,
 		'world/2014/nov...': ['world/2015/jan/...', 'world/2014/dec/...'],
 		'world/2014/oct...': ['world/2015/feb/...', 'world/2014/dec/...'],
 	}
-	We can select the number of days to go back. We should always go back 90 (atleast 90!) so that older articles can 'find' any newer articles we have added in the 90 days after it.
+	We can select the number of days to go back. We should always go back 90 (atleast 90!) so that older articles can 'find' any newer articles we have added in the 90 days after it. If incremental_add = False, number of days is set at 9999.
 	"""
 	# Ensure argument correct
 	assert future_or_past=='future_articles' or future_or_past=='past_articles', 'future_or_past variable must be "future_articles" or "past_articles"'
@@ -750,7 +751,7 @@ if __name__ == '__main__':
 			articles=general_functions.load_pickle(options.current_articles_path),
 			cosine_similarity_matrix=general_functions.load_pickle(options.current_articles_path_cosine_similarites),
 			future_or_past='future_articles',
-			number_of_days=180,
+			number_of_days=1800,
 			incremental_add=incremental_add)
 
 	# Create a smaller articles pickle, and python module, based on articles in cosine similarity dict, and only including relevant fields. Also create 

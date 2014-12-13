@@ -9,12 +9,33 @@ $('#guardian_search_terms_submit').click( function(e) {
 
 	// Send data to AJAX to get Guardian results
 	var query = $('#guardian_search_terms_input').val();
+	var start_date = $('#startdate').val();
+	var end_date = $('#enddate').val();
+
+	// Check data is OK
+	if (query.length == 0) {
+		alert("Please make sure to enter a search query (currently blank).");
+		return
+	}
+	if (end_date.slice(0,4)<2012) {
+		alert("End date is before 2012. Note that you can only search articles after 1st January 2012.");
+		return;
+	}
+	if (new Date(end_date)<new Date(start_date)) {
+		alert("Start date is after end date. Please select a valid date range.");
+		return;
+	}
+	if ( (new Date(end_date)-new Date(start_date))/1000/24/3600 < 7) {
+		alert("Your start and end dates are quite close (within a week). Please expand the time between the dates.");
+		return;
+	}
+
 	$.ajax( {
         url: '/_butterfly_search_guardian',
         data: JSON.stringify ({
-          'query':query
-          //'start_date':
-          //'end_date':
+          'query':query,
+          'start_date':start_date,
+          'end_date':end_date,
         }, null, '\t'),
         contentType: 'application/json;charset=UTF-8',
         type: "POST",
@@ -38,14 +59,13 @@ $('#guardian_search_terms_submit').click( function(e) {
             // Make links clickable (which will hide div, start visualisation)
             make_seed_articles_clickable()
 
-
             // Show results pane
             $('#results_div').fadeIn(100)            
           }
           else if (status=='0') {
             // No articles found...
             console.log("Status 0, no search results")
-            alert("No search results, please try again!")
+            alert("Sorry, no articles were found! Try expanding your date range, or choosing different search terms.")
           }
         },
         fail: function() {
