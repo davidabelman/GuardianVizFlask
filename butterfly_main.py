@@ -751,7 +751,7 @@ if __name__ == '__main__':
 			articles=general_functions.load_pickle(options.current_articles_path),
 			cosine_similarity_matrix=general_functions.load_pickle(options.current_articles_path_cosine_similarites),
 			future_or_past='future_articles',
-			number_of_days=1800,
+			number_of_days=180,
 			incremental_add=incremental_add)
 
 	# Create a smaller articles pickle, and python module, based on articles in cosine similarity dict, and only including relevant fields. Also create 
