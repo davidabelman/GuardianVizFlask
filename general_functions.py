@@ -123,6 +123,7 @@ def print_current_status():
 	Print current status on path defined by options.current_articles_path
 	"""
 	import options	
+	reload(options)
 	print "======"
 	print "Status for %s" %options.current_articles_path
 	print "======"
@@ -131,15 +132,48 @@ def print_current_status():
 	cosine_similarities = load_pickle(filename = options.current_articles_path_cosine_similarites)
 
 	# Number of articles crawled
-	print "Articles crawled:", len(articles)
+	print "\nArticles crawled:", len(articles)
 
 	# Date range for articles
-	print "First article date:", min([articles[x]['date'] for x in articles])
+	print "\nFirst article date:", min([articles[x]['date'] for x in articles])
 	print "Latest article date:", max([articles[x]['date'] for x in articles])
 
 	# Number of articles analysed for cosine similarity
-	print "Cosine similarities calculated:", len(cosine_similarities)
+	print "\nCosine similarities calculated:", len(cosine_similarities)
 
+	
+
+	# Number of articles by month
+	dates = [str(articles[x]['date'].year)+'-'+str(articles[x]['date'].month).zfill(2) for x in articles]
+	dates_unique = list(set(dates))
+	dates_unique.sort()
+	print "\nArticles crawled by month"
+	for d in dates_unique:
+		print "%s: %s articles" %(d, dates.count(d))
+
+	# Number of World articles by month
+	dates = [str(articles[x]['date'].year)+'-'+str(articles[x]['date'].month).zfill(2) for x in articles if 'World news' in articles[x]['tags']]
+	dates_unique = list(set(dates))
+	dates_unique.sort()
+	print "\nWORLD articles crawled by month"
+	for d in dates_unique:
+		print "%s: %s articles" %(d, dates.count(d))
+
+	# Number of UK articles by month
+	dates = [str(articles[x]['date'].year)+'-'+str(articles[x]['date'].month).zfill(2) for x in articles if 'UK news' in articles[x]['tags']]
+	dates_unique = list(set(dates))
+	dates_unique.sort()
+	print "\nUK articles crawled by month"
+	for d in dates_unique:
+		print "%s: %s articles" %(d, dates.count(d))
+
+	# FB shares pulled
+	dates = [str(articles[x]['date'].year)+'-'+str(articles[x]['date'].month).zfill(2) for x in articles if type(articles[x]['facebook']['snapshot_of_total'])==int]
+	dates_unique = list(set(dates))
+	dates_unique.sort()
+	print "\nFB shares crawled by month"
+	for d in dates_unique:
+		print "%s: %s articles" %(d, dates.count(d))
 def search_guardian_by_query(
 		query,
 		articles,
@@ -222,7 +256,7 @@ def search_guardian_by_query(
 	# Return in correct format
 	return [{
 		'id':x['id'],
-		'headline':x['webTitle'],
+		'headline':x['webTitle'].replace('&amp;','&').replace('&#39;',"'").replace('&quot;','"'),
 		'date':x['webPublicationDate']
 	} for x in sorted_article_set]
 

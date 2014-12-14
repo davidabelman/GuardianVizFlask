@@ -19,7 +19,7 @@ function make_nodes_hoverable(hoverout) {
 
 function update_panel(d) {
   // Add article data to panel (e.g. on hover over)
-  $('#headline').text(d.headline)
+  $('#headline').html(d.headline)
   $('#standfirst').html(d.standfirst)
   $('#date').text(d.date)
   $('#image').html('<img src="'+d.image+'">')
@@ -56,7 +56,7 @@ function make_nodes_clickable() {
       // Set force charge and friction
       // Initialsed previously with weak charge to avoid bouncing off screen
         setTimeout( function() {
-          force.charge(-4000).friction(0.7).linkDistance(220)
+          force.charge(-4500).friction(0.8).linkDistance(230)
         },1000)
       
 
@@ -112,7 +112,7 @@ function make_nodes_clickable() {
           else if (status=='-1') {
             // No more articles found...
             console.log("Status -1, no more articles")
-            alert("No more articles!")
+            alert("No more recent articles found along this chain. Try expanding another article, or start again!")
           }
           else {
             // New data not returned from Python, see Flask code
@@ -136,8 +136,8 @@ function start() {
   ITERATION+=1
 
   // Increase size of SVG by 5% on each run through, just to allow more room for network
-  height = height*1.12
-  width = width*1.08
+  height = height*1.2
+  width = width*1.1
   svg.attr('height', height).attr('width', width)
 
   // Remove 'fresh_node_label' class from all text
@@ -228,8 +228,8 @@ function start() {
 function tick() {
   // This runs on every tick of the animation, moving around the positions of nodes/text etc.
   // Node positions
-  var shift_x = ITERATION*22
-  var shift_y = ITERATION*33
+  var shift_x = ITERATION*33
+  var shift_y = ITERATION*44
 
 
   svg
@@ -278,9 +278,9 @@ var nodes = [],
 var force = d3.layout.force()
       .nodes(nodes)
       .links(links)
-      .charge(-170)
+      .charge(-350)
       .friction(0.4)
-      .linkDistance(220)
+      .linkDistance(250)
       .size([width, height])
       .on("tick", tick);
 
@@ -295,18 +295,7 @@ var node = svg.selectAll(".node"),
 // First of all, add initial node
 // See other script (seed)
 
-
-  // var a = {id: "world2013aug20nsa-david-miranda-guardian-hard-drives",
-  //       python_id: 'world/2013/feb/27/iran-turning-point-nuclear-talks',
-  //       headline:'NSA files: UK and US at odds over destruction of Guardian hard drives',
-  //       headline_short:'NSA files: UK and US at odds...',
-  //       standfirst:'White House says it would be "difficult to imagine" US authorities adopting GCHQ tactics',
-  //       date:'21 Aug 2013',
-  //       image:'http://static.guim.co.uk/sys-images/Guardian/Pix/pictures/2013/8/20/1377030430592/Josh-Earnest-003.jpg',
-  //       readmore:'<a href="http://www.theguardian.com/world/2013/aug/20/nsa-david-miranda-guardian-hard-drives">Click here to read more on the Guardian website</a>'};
-  // nodes.push(a);
-  // links.push();
-  // start();
-
-
-
+// Make reset button clickable
+$('#start_again_button').click( function() {
+    location.reload();
+ })

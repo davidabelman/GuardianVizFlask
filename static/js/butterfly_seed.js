@@ -1,6 +1,57 @@
 // Script dealing with the 'setup' for the visualisation
 // Finding guardian articles, selecting a seed
 
+// Submit random search when random button pressed
+$('#random_seed_article').click( function(e) {
+	e.preventDefault();
+	e.stopImmediatePropagation();
+
+	// Send AJAX request
+	$.ajax( {
+        url: '/_butterfly_search_random',
+        
+        contentType: 'application/json;charset=UTF-8',
+        type: "POST",
+        success: function(response) {
+          // Returns status=1 and userID
+          var response = JSON.parse(response);
+          var status = response['status'];
+          var data = response['data'];
+          if (status=='1') {
+            // Successfully retrieved new data
+            console.log("Got data from AJAX:", data)
+            
+            // Clear current results
+            $('#results_list').html('')
+
+            // Add results to pane
+            for (i=0; i<data.length; i++) {
+            	html_to_add = '<div class="seed_div" python_id='+data[i]['id']+'>'
+            	html_to_add += '<p class="seed_date">'+data[i]['date'].slice(0,10)+'<p>'
+            	html_to_add += '<h4 class="seed_headline">'+data[i]['headline']+'<h4>'
+            	html_to_add += '</div>'
+            	current_html = $('#results_list').html()            	
+            	$('#results_list').html(current_html + html_to_add)
+            }
+            // Make links clickable (which will hide div, start visualisation)
+            make_seed_articles_clickable()
+
+            // Show results pane
+            $('#results_div').fadeIn(100)        
+          }
+          else if (status=='0') {
+            // No articles found...
+            console.log("Status 0, no search results")
+            alert("Sorry, there has been an unknown error.")
+          }
+        },
+        fail: function() {
+          console.log("Serverside error")
+          alert("Serverside error")
+        } // end success callback
+      }); // end ajax
+})
+
 
 // Submit guardian search when submit button pressed
 $('#guardian_search_terms_submit').click( function(e) {
@@ -18,7 +69,7 @@ $('#guardian_search_terms_submit').click( function(e) {
 		return
 	}
 	if (end_date.slice(0,4)<2012) {
-		alert("End date is before 2012. Note that you can only search articles after 1st January 2012.");
+		alert("Please check end date is a valid date, and that it occurs in 2012 or after.");
 		return;
 	}
 	if (new Date(end_date)<new Date(start_date)) {
@@ -30,6 +81,10 @@ $('#guardian_search_terms_submit').click( function(e) {
 		return;
 	}
 
+	// Change text of submit button to 'searching...'
+	$('#guardian_search_terms_submit').html('Searching...')
+
+	// Send AJAX request
 	$.ajax( {
         url: '/_butterfly_search_guardian',
         data: JSON.stringify ({
@@ -41,26 +96,33 @@ $('#guardian_search_terms_submit').click( function(e) {
         type: "POST",
         success: function(response) {
           // Returns status=1 and userID
-          response = JSON.parse(response);
-          status = response['status']
-          data = response['data']
+          var response = JSON.parse(response);
+          var status = response['status'];
+          var data = response['data'];
           if (status=='1') {
             // Successfully retrieved new data
             console.log("Got data from AJAX:", data)
+            
+            // Clear current results
+            $('#results_list').html('')
+
             // Add results to pane
             for (i=0; i<data.length; i++) {
             	html_to_add = '<div class="seed_div" python_id='+data[i]['id']+'>'
             	html_to_add += '<p class="seed_date">'+data[i]['date'].slice(0,10)+'<p>'
             	html_to_add += '<h4 class="seed_headline">'+data[i]['headline']+'<h4>'
             	html_to_add += '</div>'
-            	current_html = $('#results_div').html()            	
-            	$('#results_div').html(current_html + html_to_add)
+            	current_html = $('#results_list').html()            	
+            	$('#results_list').html(current_html + html_to_add)
             }
             // Make links clickable (which will hide div, start visualisation)
             make_seed_articles_clickable()
 
             // Show results pane
-            $('#results_div').fadeIn(100)            
+            $('#results_div').fadeIn(100) 
+
+            // Change button text to 'Search!' again            
+			$('#guardian_search_terms_submit').html('Search!')           
           }
           else if (status=='0') {
             // No articles found...
@@ -108,14 +170,6 @@ function make_seed_articles_clickable() {
             console.log("Got data from AJAX:", data)
 
             // Start visualisation based on data received
-          //   var start_node = {id: data['id'],
-		        // python_id: 'world/2013/feb/27/iran-turning-point-nuclear-talks',
-		        // headline:'NSA files: UK and US at odds over destruction of Guardian hard drives',
-		        // headline_short:'NSA files: UK and US at odds...',
-		        // standfirst:'White House says it would be "difficult to imagine" US authorities adopting GCHQ tactics',
-		        // date:'21 Aug 2013',
-		        // image:'http://static.guim.co.uk/sys-images/Guardian/Pix/pictures/2013/8/20/1377030430592/Josh-Earnest-003.jpg',
-		        // readmore:'<a href="http://www.theguardian.com/world/2013/aug/20/nsa-david-miranda-guardian-hard-drives">Click here to read more on the Guardian website</a>'};
 			nodes.push(data);
 			links.push();
 			start();
@@ -138,7 +192,5 @@ function make_seed_articles_clickable() {
           alert("Serverside error")
         } // end success callback
       }); // end ajax
-
-
 	})
 }

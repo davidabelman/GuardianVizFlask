@@ -20,10 +20,16 @@ Notes on methodology:
 
 
 TODO:
-- Use TFIDF instead of cosine similarity?
+- Use TFIDF instead of cosine similarity? Probably not - too slow.
 - Use LDA instead of K-means?
 - Should pick best article from k-means cluster based on more than just cosine similarity
 	(i.e. pagerank, facebook popularity, etc.)
+- Automatically crawl from latest date up until 2 days ago??
+- Crawl all data from 1st Jan 2012 to 31st July 2012. Incrementally add cosines, and recalculate K-means ONLY for articles older than 750 days
+- Do a final pull of data in December up to yesterday
+- Prep (correct width) images for CV website
+- Update CV website
+- Finish intro page for speech synthesis, turn into a flask app, upload
 
 """
 
@@ -517,7 +523,8 @@ def given_article_id_calculate_top_related(article_id, future_or_past, cosine_si
 def create_frozen_kmeans_lookup(articles,
 		cosine_similarity_matrix,
 		future_or_past,
-		number_of_days=90,
+		days_ago_start=90,
+		days_ago_end=0,
 		incremental_add=True):
 	"""
 	If we don't want to calculate kmeans clusters at run-time, we can calculate in advance
@@ -543,7 +550,8 @@ def create_frozen_kmeans_lookup(articles,
 	# If we aren't adding incrementally we start from afresh
 	if not incremental_add:
 		frozen_kmeans = {}
-		number_of_days = 9999
+		days_ago_start = 9999
+		days_ago_end = 0
 		print "Incremental add is set to False. Creating a new pickle."
 	# If we want to add incrementally, we load the existing pickle (if exists)
 	else:
@@ -554,9 +562,11 @@ def create_frozen_kmeans_lookup(articles,
 
 	# Counters, ids_to_calculate (only articles newer than a certain date)
 	counter = 0
-	ids_to_calculate = [id_ for id_ in cosine_similarity_matrix if (datetime.datetime.today()-articles[id_]['date']).days < number_of_days]	
+	ids_to_calculate = [id_ for id_ in cosine_similarity_matrix
+		if (datetime.datetime.today()-articles[id_]['date']).days <= days_ago_start
+		if (datetime.datetime.today()-articles[id_]['date']).days >= days_ago_end ]	
 	total = len(ids_to_calculate)
-	print "We will calculate top K-means results for %s articles (i.e. those newer than %s days)" %(total, number_of_days)
+	print "We will calculate top K-means results for %s articles (i.e. those between %s and %s days ago)" %(total, days_ago_start, days_ago_end)
 
 
 	# Loop through all articles in cosine_similarity_matrix
@@ -751,7 +761,8 @@ if __name__ == '__main__':
 			articles=general_functions.load_pickle(options.current_articles_path),
 			cosine_similarity_matrix=general_functions.load_pickle(options.current_articles_path_cosine_similarites),
 			future_or_past='future_articles',
-			number_of_days=1800,
+			days_ago_start=1800, #should be 180 or so
+			days_ago_end=750, # should be 0
 			incremental_add=incremental_add)
 
 	# Create a smaller articles pickle, and python module, based on articles in cosine similarity dict, and only including relevant fields. Also create 

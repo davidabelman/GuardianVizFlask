@@ -10,6 +10,23 @@
   left: 9px;
 }
 
+#start_again_button {  
+  background-color: #eee;
+  /*height: 800px;*/
+  /*width: 25%;*/
+  position: fixed;  
+  border: 0px solid #222;
+  padding-left: 13px;
+  padding-right: 13px;
+  z-index: 100;
+  bottom: 9px;
+  left: 9px;
+}
+
+#start_again_button:hover {
+  cursor: pointer;
+}
+
 #butterfly_pane {  
   background-color: #fff;
 }
@@ -43,6 +60,11 @@
 
 .seed_div:hover {
   background: #dde;
+}
+
+#random_seed_article {
+  cursor: pointer;
+  color: #17f;
 }
 
 #readmore {
