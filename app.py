@@ -144,7 +144,7 @@ def butterfly_search_random():
 		if id_ in collected_article_ids:
 			continue
 		# Check date is correct
-		if articles[id_]['date'].year != 2013:
+		if articles[id_]['date'].year != 2012:
 			continue
 		# Check 3 future articles exist
 		if len(articles[id_]['f']) < 3:
@@ -175,7 +175,7 @@ def butterfly_search_random():
 @app.route('/_butterfly_search_guardian', methods=['GET', 'POST'])
 def butterfly_search_guardian():
 	"""
-	Given search query (TODO and a date range)
+	Given search query and date range
 	Return data from The Guardian search api
 	"""
 	# Allow testing functionality to skip guardian search

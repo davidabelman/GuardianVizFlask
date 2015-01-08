@@ -141,8 +141,6 @@ def print_current_status():
 	# Number of articles analysed for cosine similarity
 	print "\nCosine similarities calculated:", len(cosine_similarities)
 
-	
-
 	# Number of articles by month
 	dates = [str(articles[x]['date'].year)+'-'+str(articles[x]['date'].month).zfill(2) for x in articles]
 	dates_unique = list(set(dates))
@@ -174,6 +172,8 @@ def print_current_status():
 	print "\nFB shares crawled by month"
 	for d in dates_unique:
 		print "%s: %s articles" %(d, dates.count(d))
+
+
 def search_guardian_by_query(
 		query,
 		articles,
@@ -230,7 +230,8 @@ def search_guardian_by_query(
 	except:
 		print "Failed to retrieve result set."
 		return None
-	print "Received %s results." %page_data['response']['total']
+	print "Received %s results from Guardian." %page_data['response']['total']
+	print article_set
 
 	# Check if each article is in articles pickle / in database (TODO: currently pickle)
 	if pickle_or_database == 'pickle':

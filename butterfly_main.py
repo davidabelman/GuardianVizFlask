@@ -21,15 +21,13 @@ Notes on methodology:
 
 TODO:
 - Use TFIDF instead of cosine similarity? Probably not - too slow.
-- Use LDA instead of K-means?
+- Use LDA instead of K-means? Probably don't bother.
 - Should pick best article from k-means cluster based on more than just cosine similarity
 	(i.e. pagerank, facebook popularity, etc.)
 - Automatically crawl from latest date up until 2 days ago??
-- Crawl all data from 1st Jan 2012 to 31st July 2012. Incrementally add cosines, and recalculate K-means ONLY for articles older than 750 days
-- Do a final pull of data in December up to yesterday
-- Prep (correct width) images for CV website
-- Update CV website
-- Finish intro page for speech synthesis, turn into a flask app, upload
+* Crawl all data from 1st Jan 2012 to 31st July 2012. Incrementally add cosines, and recalculate K-means ONLY for articles older than 750 days
+* Do a final pull of data in December up to yesterday
+* Git push latest
 
 """
 
@@ -339,23 +337,29 @@ def create_butterzip_files(use_scikit_learn=False):
 	# 1) Create new articles (articles_butterzip)
 	articles_butterzip = {}
 	for id_ in cosine_similarity_matrix:
-		if use_scikit_learn:
-			article_barebones = {
-				'headline':articles[id_]['headline'],
-				'standfirst':articles[id_]['standfirst'],
-				'date':articles[id_]['date'],
-				'thumbnail':articles[id_]['thumbnail'],
-				'tags':articles[id_]['tags'],
-			}
-		else: 
-			article_barebones = {
-				'headline':articles[id_]['headline'],
-				'standfirst':articles[id_]['standfirst'],
-				'date':articles[id_]['date'],
-				'thumbnail':articles[id_]['thumbnail'],
-				'f':frozen_kmeans_future[id_]  # frozen kmeans - also add past articles on another line here under 'p' key (TODO)
-			}
-		articles_butterzip[id_] = article_barebones
+
+		if id_ in frozen_kmeans_future:
+			if use_scikit_learn:
+				article_barebones = {
+					'headline':articles[id_]['headline'],
+					'standfirst':articles[id_]['standfirst'],
+					'date':articles[id_]['date'],
+					'thumbnail':articles[id_]['thumbnail'],
+					'tags':articles[id_]['tags'],
+				}
+			else: 
+				article_barebones = {
+					'headline':articles[id_]['headline'],
+					'standfirst':articles[id_]['standfirst'],
+					'date':articles[id_]['date'],
+					'thumbnail':articles[id_]['thumbnail'],
+					'f':frozen_kmeans_future[id_]  # frozen kmeans - also add past articles on another line here under 'p' key (TODO)
+				}
+			articles_butterzip[id_] = article_barebones
+
+		else:
+			print "Can't find article %s in frozen_kmeans_future - why not?" %id_
+
 	# Save this as a pickle and a file
 	general_functions.save_pickle(
 		data = articles_butterzip, 
@@ -749,9 +753,9 @@ if __name__ == '__main__':
 	# If True: Update the cosine similarity dictionary and save as pickle for incremental articles
 	# Filter out articles with less than X facebook shares
 	# Only save cosine similarities above Y threshold value
-	if True:
+	if False:
 		print "COSINE SIMILARITY CALCULATIONS:"
-		create_cosine_similarity_pickle_all_articles(threshold=0.4, incremental_add=incremental_add, fb_share_minimum=20)
+		create_cosine_similarity_pickle_all_articles(threshold=0.4, incremental_add=incremental_add, fb_share_minimum=5)
 
 	# If we don't want to calculate the top K-means clusters at run-time, we can save the IDs beforehand by running this. Number of days to re-calculate should be 90 or above when calculating for 'future' articles, as we need to 'catch' new articles coming in within the historial articles' related lists.
 	# If incremental add is false, we recreate the whole matrix (with number of days set at 9999)
@@ -761,8 +765,8 @@ if __name__ == '__main__':
 			articles=general_functions.load_pickle(options.current_articles_path),
 			cosine_similarity_matrix=general_functions.load_pickle(options.current_articles_path_cosine_similarites),
 			future_or_past='future_articles',
-			days_ago_start=1800, #should be 180 or so
-			days_ago_end=750, # should be 0
+			days_ago_start=370, #should be 180 or so
+			days_ago_end=179, # should be 0
 			incremental_add=incremental_add)
 
 	# Create a smaller articles pickle, and python module, based on articles in cosine similarity dict, and only including relevant fields. Also create 
