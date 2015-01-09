@@ -753,7 +753,7 @@ if __name__ == '__main__':
 	# If True: Update the cosine similarity dictionary and save as pickle for incremental articles
 	# Filter out articles with less than X facebook shares
 	# Only save cosine similarities above Y threshold value
-	if False:
+	if True:
 		print "COSINE SIMILARITY CALCULATIONS:"
 		create_cosine_similarity_pickle_all_articles(threshold=0.4, incremental_add=incremental_add, fb_share_minimum=5)
 
@@ -765,8 +765,8 @@ if __name__ == '__main__':
 			articles=general_functions.load_pickle(options.current_articles_path),
 			cosine_similarity_matrix=general_functions.load_pickle(options.current_articles_path_cosine_similarites),
 			future_or_past='future_articles',
-			days_ago_start=370, #should be 180 or so
-			days_ago_end=179, # should be 0
+			days_ago_start=180, #should be 180 or so
+			days_ago_end=0, # should be 0
 			incremental_add=incremental_add)
 
 	# Create a smaller articles pickle, and python module, based on articles in cosine similarity dict, and only including relevant fields. Also create 
